@@ -37,7 +37,7 @@ class SparkDataFrameSchemaWriter(SchemaWriter[pyspark.sql.DataFrame]):
         super().__init__(to_path, cols, fmt)
 
     def write(self, *dfs: pyspark.sql.DataFrame, **kwargs):
-        if dfs is None or len(dfs) == 0:
+        if dfs is None or not dfs:
             return
         if len(dfs) > 1:
             raise AssertionError("Only a single Spark.DataFrame can be written per variable currently")

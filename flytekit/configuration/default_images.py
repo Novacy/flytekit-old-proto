@@ -41,8 +41,8 @@ class DefaultImages(object):
     def get_version_suffix(cls) -> str:
         from flytekit import __version__
 
-        if not __version__ or __version__ == "0.0.0+develop":
-            version_suffix = "latest"
-        else:
-            version_suffix = __version__
-        return version_suffix
+        return (
+            "latest"
+            if not __version__ or __version__ == "0.0.0+develop"
+            else __version__
+        )

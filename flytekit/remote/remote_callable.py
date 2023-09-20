@@ -44,7 +44,7 @@ class RemoteEntity(ABC):
         #     nothing. Subsequent tasks will have to know how to unwrap these. If by chance a non-Flyte task uses a
         #     task output as an input, things probably will fail pretty obviously.
         #     Since this is a reference entity, it still needs to be mocked otherwise an exception will be raised.
-        if len(args) > 0:
+        if args:
             raise user_exceptions.FlyteAssertion(
                 f"Cannot call remotely fetched entity with args - detected {len(args)} positional args {args}"
             )

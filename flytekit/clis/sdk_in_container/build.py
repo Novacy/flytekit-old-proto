@@ -63,12 +63,11 @@ class BuildWorkflowCommand(WorkflowCommand):
         loaded_entity: typing.Any,
         is_workflow: bool,
     ):
-        cmd = click.Command(
+        return click.Command(
             name=entity_name,
             callback=build_command(ctx, loaded_entity),
             help=f"Build an image for {run_level_params.computed_params.module}.{entity_name}.",
         )
-        return cmd
 
 
 class BuildCommand(RunCommand):

@@ -130,7 +130,7 @@ class ReferenceEntity(object):
         expected_output_names = list(self.python_interface.outputs.keys())
         if len(expected_output_names) == 1:
             native_outputs_as_map = {expected_output_names[0]: native_outputs}
-        elif len(expected_output_names) == 0:
+        elif not expected_output_names:
             native_outputs_as_map = {}
         else:
             native_outputs_as_map = {expected_output_names[i]: native_outputs[i] for i, _ in enumerate(native_outputs)}
@@ -139,14 +139,12 @@ class ReferenceEntity(object):
         # built into the IDL that all the values of a literal map are of the same type.
         literals = {}
         for k, v in native_outputs_as_map.items():
-            literal_type = self.interface.outputs[k].type
             py_type = self.python_interface.outputs[k]
             if isinstance(v, tuple):
                 raise AssertionError(f"Output({k}) in task{self.name} received a tuple {v}, instead of {py_type}")
+            literal_type = self.interface.outputs[k].type
             literals[k] = TypeEngine.to_literal(ctx, v, py_type, literal_type)
-        outputs_literal_map = _literal_models.LiteralMap(literals=literals)
-        # After the execute has been successfully completed
-        return outputs_literal_map
+        return _literal_models.LiteralMap(literals=literals)
 
     def local_execute(self, ctx: FlyteContext, **kwargs) -> Optional[Union[Tuple[Promise], Promise, VoidPromise]]:
         """
@@ -176,7 +174,7 @@ class ReferenceEntity(object):
             raise AssertionError(f"Length difference {len(output_names)} {len(outputs_literals)}")
 
         # Tasks that don't return anything still return a VoidPromise
-        if len(output_names) == 0:
+        if not output_names:
             return VoidPromise(self.name)
 
         vals = [Promise(var, outputs_literals[var]) for var in output_names]
@@ -202,7 +200,7 @@ class ReferenceEntity(object):
         #     nothing. Subsequent tasks will have to know how to unwrap these. If by chance a non-Flyte task uses a
         #     task output as an input, things probably will fail pretty obviously.
         #     Since this is a reference entity, it still needs to be mocked otherwise an exception will be raised.
-        if len(args) > 0:
+        if args:
             raise _user_exceptions.FlyteAssertion(
                 f"Cannot call reference entity with args - detected {len(args)} positional args {args}"
             )

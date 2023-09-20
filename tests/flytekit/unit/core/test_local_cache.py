@@ -402,7 +402,7 @@ def test_cache_key_repetition():
         "c": 17,
     }
     keys = set()
-    for i in range(0, 100):
+    for _ in range(0, 100):
         lit = TypeEngine.to_literal(ctx, kwargs, Dict, lt)
         lm = LiteralMap(
             literals={
@@ -450,7 +450,7 @@ def test_stable_cache_key():
 
 
 def calculate_cache_key_multiple_times(x, n=1000):
-    series = pd.Series(
+    return pd.Series(
         [
             _calculate_cache_key(
                 task_name="task_name",
@@ -469,7 +469,6 @@ def calculate_cache_key_multiple_times(x, n=1000):
             for _ in range(n)
         ]
     ).value_counts()
-    return series
 
 
 @pytest.mark.parametrize(

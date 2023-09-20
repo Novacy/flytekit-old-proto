@@ -73,11 +73,10 @@ for log_name, child_logger in child_loggers.items():
     level_from_env = os.getenv(env_var)
     if level_from_env is not None:
         child_logger.setLevel(int(level_from_env))
+    elif child_logger is user_space_logger:
+        child_logger.setLevel(logging.INFO)
     else:
-        if child_logger is user_space_logger:
-            child_logger.setLevel(logging.INFO)
-        else:
-            child_logger.setLevel(logging.WARNING)
+        child_logger.setLevel(logging.WARNING)
 
 # create formatter
 logging_fmt = os.environ.get(LOGGING_FMT_ENV_VAR, "json")

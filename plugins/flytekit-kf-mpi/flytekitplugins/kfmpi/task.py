@@ -195,9 +195,12 @@ class MPIFunctionTask(PythonFunctionTask[MPIJob]):
         else:
             num_workers = self.task_config.worker.replicas
         num_procs = num_workers * self.task_config.slots
-        mpi_cmd = self._MPI_BASE_COMMAND + ["-np", f"{num_procs}"] + ["python", settings.entrypoint_settings.path] + cmd
-        # the hostfile is set automatically by MPIOperator using env variable OMPI_MCA_orte_default_hostfile
-        return mpi_cmd
+        return (
+            self._MPI_BASE_COMMAND
+            + ["-np", f"{num_procs}"]
+            + ["python", settings.entrypoint_settings.path]
+            + cmd
+        )
 
     def get_custom(self, settings: SerializationSettings) -> Dict[str, Any]:
         worker = self._convert_replica_spec(self.task_config.worker)
@@ -264,8 +267,7 @@ class HorovodFunctionTask(MPIFunctionTask):
 
     def get_command(self, settings: SerializationSettings) -> List[str]:
         cmd = self._get_base_command(settings)
-        mpi_cmd = self._get_horovod_prefix() + cmd
-        return mpi_cmd
+        return self._get_horovod_prefix() + cmd
 
     def _get_horovod_prefix(self) -> List[str]:
         np = self.task_config.worker.replicas * self.task_config.slots

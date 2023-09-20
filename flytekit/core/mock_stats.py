@@ -16,12 +16,12 @@ class MockStats(object):
         self._records_tags = {}
 
     def incr(self, metric, count=1, tags=None, **kwargs):
-        full_name = self.scope + "." + metric
+        full_name = f"{self.scope}.{metric}"
         self._records[full_name] = self._records.get(full_name, 0) + count
         self._records_tags[full_name] = tags or {}
 
     def decr(self, metric, count=1, tags=None, **kwargs):
-        full_name = self.scope + "." + metric
+        full_name = f"{self.scope}.{metric}"
         self._records[full_name] = self._records.get(full_name, 0) - count
         self._records_tags[full_name] = tags or {}
 
@@ -32,16 +32,16 @@ class MockStats(object):
         return _Timer(self, metric, tags=tags or {})
 
     def gauge(self, metric, value, tags=None, **kwargs):
-        full_name = self.scope + "." + metric
+        full_name = f"{self.scope}.{metric}"
         self._records[full_name] = value
         self._records_tags[full_name] = tags or {}
 
     def current_value(self, metric):
-        full_name = self.scope + "." + metric
+        full_name = f"{self.scope}.{metric}"
         return self._records.get(full_name, None)
 
     def current_tags(self, metric):
-        full_name = self.scope + "." + metric
+        full_name = f"{self.scope}.{metric}"
         return self._records_tags.get(full_name, None)
 
 

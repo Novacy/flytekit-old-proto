@@ -189,10 +189,10 @@ class AsyncEntity:
                 break
             await asyncio.sleep(poll_interval.total_seconds())
 
-        outputs = {}
-        for key, type_ in self.entity.python_interface.outputs.items():
-            outputs[key] = execution.outputs.get(key, as_type=type_)
-
+        outputs = {
+            key: execution.outputs.get(key, as_type=type_)
+            for key, type_ in self.entity.python_interface.outputs.items()
+        }
         if len(outputs) == 1:
             out, *_ = outputs.values()
             return out
@@ -297,14 +297,7 @@ async def render_deck(async_stack):
         else:
             node_outputs = get_io(node.execution.outputs)
 
-        output = f"{output}\n" + NODE_HTML_TEMPLATE.format(
-            entity_type=node.entity_type,
-            entity_name=node.entity_name,
-            execution_name=node.execution.id.name,
-            url=node.url,
-            inputs=node_inputs,
-            outputs=node_outputs,
-        )
+        output = f"{output}\n{NODE_HTML_TEMPLATE.format(entity_type=node.entity_type, entity_name=node.entity_name, execution_name=node.execution.id.name, url=node.url, inputs=node_inputs, outputs=node_outputs)}"
 
     Deck("eager workflow", output)
 
@@ -343,9 +336,9 @@ async def node_cleanup_async(sig, loop, async_stack: AsyncStack):
     This applies either if the eager workflow completes successfully, fails, or is cancelled by the user.
     """
     logger.debug(f"Cleaning up async nodes on signal: {sig}")
-    terminations = []
-    for node in async_stack.call_stack:
-        terminations.append(node.async_entity.terminate())
+    terminations = [
+        node.async_entity.terminate() for node in async_stack.call_stack
+    ]
     results = await asyncio.gather(*terminations)
     logger.debug(f"Successfully terminated subtasks {results}")
 
@@ -356,9 +349,9 @@ def node_cleanup(sig, frame, loop, async_stack: AsyncStack):
     This applies either if the eager workflow completes successfully, fails, or is cancelled by the user.
     """
     logger.debug(f"Cleaning up async nodes on signal: {sig}")
-    terminations = []
-    for node in async_stack.call_stack:
-        terminations.append(node.async_entity.terminate())
+    terminations = [
+        node.async_entity.terminate() for node in async_stack.call_stack
+    ]
     results = asyncio.gather(*terminations)
     results = asyncio.run(results)
     logger.debug(f"Successfully terminated subtasks {results}")

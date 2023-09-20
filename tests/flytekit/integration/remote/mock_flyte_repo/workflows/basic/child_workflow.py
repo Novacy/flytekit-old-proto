@@ -14,8 +14,7 @@ def add(a: int, b: int) -> int:
 
 @workflow
 def my_childwf(a: int = 42) -> int:
-    b = double(a=a)
-    return b
+    return double(a=a)
 
 
 child_lp = LaunchPlan.get_or_create(my_childwf, name="my_fixed_child_lp", labels=Labels({"l1": "v1"}))
@@ -25,8 +24,7 @@ child_lp = LaunchPlan.get_or_create(my_childwf, name="my_fixed_child_lp", labels
 def parent_wf(a: int) -> int:
     x = double(a=a)
     y = child_lp(a=x)
-    z = add(a=x, b=y)
-    return z
+    return add(a=x, b=y)
 
 
 if __name__ == "__main__":

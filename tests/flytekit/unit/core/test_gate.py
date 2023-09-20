@@ -223,7 +223,7 @@ def test_subwf():
 
     @task
     def nt1(a: int) -> nt:
-        a = a + 2
+        a += 2
         return nt(a, a)
 
     @workflow
@@ -248,7 +248,7 @@ def test_cond():
 
     @task
     def square(n: float) -> float:
-        return n * n
+        return n**2
 
     @task
     def double(n: float) -> float:
@@ -270,7 +270,7 @@ def test_cond():
 def test_cond_wait():
     @task
     def square(n: float) -> float:
-        return n * n
+        return n**2
 
     @task
     def double(n: float) -> float:

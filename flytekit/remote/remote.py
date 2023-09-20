@@ -115,7 +115,9 @@ def _get_latest_version(list_entities_method: typing.Callable, project: str, dom
     )
     admin_entity = None if not entity_list else entity_list[0]
     if not admin_entity:
-        raise user_exceptions.FlyteEntityNotExistException("Named entity {} not found".format(named_entity))
+        raise user_exceptions.FlyteEntityNotExistException(
+            f"Named entity {named_entity} not found"
+        )
     return admin_entity.id.version
 
 
@@ -259,9 +261,7 @@ class FlyteRemote(object):
 
                     remote_logger.debug(f"IPython found, returning HTML from {flyte_uri}")
                     with fs.open(d, "rb") as r:
-                        html = HTML(str(r.read()))
-                        return html
-                # If not return bytes
+                        return HTML(str(r.read()))
                 else:
                     remote_logger.debug(f"IPython not found, returning HTML as bytes from {flyte_uri}")
                     return fs.open(d, "rb").read()
@@ -356,9 +356,10 @@ class FlyteRemote(object):
         admin_workflow = self.client.get_workflow(workflow_id)
         compiled_wf = admin_workflow.closure.compiled_workflow
 
-        wf_templates = [compiled_wf.primary.template]
-        wf_templates.extend([swf.template for swf in compiled_wf.sub_workflows])
-
+        wf_templates = [
+            compiled_wf.primary.template,
+            *[swf.template for swf in compiled_wf.sub_workflows],
+        ]
         node_launch_plans = {}
         # TODO: Inspect branch nodes for launch plans
         for wf_template in wf_templates:
@@ -451,8 +452,7 @@ class FlyteRemote(object):
         )
         req = SignalListRequest(workflow_execution_id=wf_exec_id.to_flyte_idl(), limit=limit, filters=filters)
         resp = self.client.list_signals(req)
-        s = resp.signals
-        return s
+        return resp.signals
 
     def set_signal(
         self,
@@ -573,14 +573,13 @@ class FlyteRemote(object):
         :return: Identifier of the created entity
         """
         if isinstance(cp_entity, RemoteEntity):
-            if isinstance(cp_entity, (FlyteWorkflow, FlyteTask)):
-                if not cp_entity.should_register:
-                    remote_logger.debug(f"Skipping registration of remote entity: {cp_entity.name}")
-                    raise RegistrationSkipped(f"Remote task/Workflow {cp_entity.name} is not registrable.")
-            else:
+            if (
+                isinstance(cp_entity, (FlyteWorkflow, FlyteTask))
+                and not cp_entity.should_register
+                or not isinstance(cp_entity, (FlyteWorkflow, FlyteTask))
+            ):
                 remote_logger.debug(f"Skipping registration of remote entity: {cp_entity.name}")
                 raise RegistrationSkipped(f"Remote task/Workflow {cp_entity.name} is not registrable.")
-
         if isinstance(
             cp_entity,
             (
@@ -982,18 +981,21 @@ class FlyteRemote(object):
         """
         if execution_name is not None and execution_name_prefix is not None:
             raise ValueError("Only one of execution_name and execution_name_prefix can be set, but got both set")
-        execution_name_prefix = execution_name_prefix + "-" if execution_name_prefix is not None else None
+        execution_name_prefix = (
+            f"{execution_name_prefix}-"
+            if execution_name_prefix is not None
+            else None
+        )
         execution_name = execution_name or (execution_name_prefix or "f") + uuid.uuid4().hex[:19]
         if not options:
             options = Options()
-        if options.disable_notifications is not None:
-            if options.disable_notifications:
-                notifications = None
-            else:
-                notifications = NotificationList(options.notifications)
-        else:
+        if options.disable_notifications is None:
             notifications = NotificationList([])
 
+        elif options.disable_notifications:
+            notifications = None
+        else:
+            notifications = NotificationList(options.notifications)
         type_hints = type_hints or {}
         literal_map = {}
         with self.remote_context() as ctx:
@@ -1060,9 +1062,7 @@ class FlyteRemote(object):
             )
         execution = FlyteWorkflowExecution.promote_from_model(self.client.get_execution(exec_id))
 
-        if wait:
-            return self.wait(execution)
-        return execution
+        return self.wait(execution) if wait else execution
 
     def _resolve_identifier_kwargs(
         self,
@@ -1152,7 +1152,7 @@ class FlyteRemote(object):
         """
         if entity.python_interface:
             type_hints = type_hints or entity.python_interface.inputs
-        if isinstance(entity, FlyteTask) or isinstance(entity, FlyteLaunchPlan):
+        if isinstance(entity, (FlyteTask, FlyteLaunchPlan)):
             return self.execute_remote_task_lp(
                 entity=entity,
                 inputs=inputs,
@@ -1595,13 +1595,13 @@ class FlyteRemote(object):
             if sync_nodes:
                 # Need to construct the mapping. There should've been returned exactly three nodes, a start,
                 # an end, and a task node.
-                task_node_exec = [
-                    x
-                    for x in filter(
-                        lambda x: x.id.node_id != constants.START_NODE_ID and x.id.node_id != constants.END_NODE_ID,
+                task_node_exec = list(
+                    filter(
+                        lambda x: x.id.node_id
+                        not in [constants.START_NODE_ID, constants.END_NODE_ID],
                         underlying_node_executions,
                     )
-                ]
+                )
                 # We need to manually make a map of the nodes since there is none for single task executions
                 # Assume the first one is the only one.
                 node_mapping = (
@@ -1614,10 +1614,9 @@ class FlyteRemote(object):
                             task_node=FlyteTaskNode(flyte_entity),
                         )
                     }
-                    if len(task_node_exec) >= 1
-                    else {}  # This is for the case where node executions haven't appeared yet
+                    if task_node_exec
+                    else {}
                 )
-        # This is the default case, an execution of a normal workflow through a launch plan
         else:
             fetched_lp = self.fetch_launch_plan(lp_id.project, lp_id.domain, lp_id.name, lp_id.version)
             node_interface = fetched_lp.flyte_workflow.interface
@@ -1626,9 +1625,10 @@ class FlyteRemote(object):
 
         # update node executions (if requested), and inputs/outputs
         if sync_nodes:
-            node_execs = {}
-            for n in underlying_node_executions:
-                node_execs[n.id.node_id] = self.sync_node_execution(n, node_mapping)  # noqa
+            node_execs = {
+                n.id.node_id: self.sync_node_execution(n, node_mapping)
+                for n in underlying_node_executions
+            }
             execution._node_executions = node_execs
         return self._assign_inputs_and_outputs(execution, execution_data, node_interface)
 
@@ -1711,7 +1711,7 @@ class FlyteRemote(object):
                 workflow_execution_identifier=execution.id.execution_id,
                 unique_parent_id=execution.id.node_id,
             )
-            child_node_executions = [x for x in child_node_executions]
+            child_node_executions = list(child_node_executions)
 
             # If this was a dynamic task, then there should be a CompiledWorkflowClosure inside the
             # NodeExecutionGetDataResponse
@@ -1761,7 +1761,6 @@ class FlyteRemote(object):
                 remote_logger.error(f"NE {execution} undeterminable, {type(execution._node)}, {execution._node}")
                 raise Exception(f"Node execution undeterminable, entity has type {type(execution._node)}")
 
-        # This is the plain ol' task execution case
         else:
             execution._task_executions = [
                 self.sync_task_execution(
@@ -1862,7 +1861,7 @@ class FlyteRemote(object):
         # to ensure that the urls produced in the getting started guide point to the correct place.
         if self.config.platform == Config.for_sandbox().platform:
             endpoint = "localhost:30080"
-        return protocol + f"://{endpoint}"
+        return f"{protocol}://{endpoint}"
 
     def generate_console_url(
         self,

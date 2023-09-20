@@ -40,8 +40,7 @@ def dolt_install():
 @pytest.fixture(scope="function")
 def doltdb_path(tmp_path, dolt_install):
     with tempfile.TemporaryDirectory() as d:
-        db_path = os.path.join(d, "foo")
-        yield db_path
+        yield os.path.join(d, "foo")
 
 
 @pytest.fixture(scope="function")
@@ -208,9 +207,9 @@ def test_branching(db, doltdb_path):
     assert wf(a=3) == 2
 
     res = db.sql("select * from big_users as of HASHOF('run/a_is_3')", result_format="csv")
-    names = set([x["name"] for x in res])
+    names = {x["name"] for x in res}
     assert names == {"Alice", "Stephanie"}
 
     res = db.sql("select * from big_users as of HASHOF('run/a_is_2')", result_format="csv")
-    names = set([x["name"] for x in res])
+    names = {x["name"] for x in res}
     assert names == {"Stephanie"}

@@ -124,9 +124,7 @@ def test_notebook_deck_local_execution_doesnt_fail():
 
 def generate_por_spec_for_task():
     primary_container = V1Container(name="primary")
-    pod_spec = V1PodSpec(containers=[primary_container])
-
-    return pod_spec
+    return V1PodSpec(containers=[primary_container])
 
 
 nb = NotebookTask(

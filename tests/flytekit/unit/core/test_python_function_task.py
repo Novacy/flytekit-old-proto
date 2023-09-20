@@ -138,23 +138,23 @@ def test_metadata():
 
 def test_pod_template():
     @task(
-        container_image="repo/image:0.0.0",
-        pod_template=PodTemplate(
-            primary_container_name="primary",
-            labels={"lKeyA": "lValA"},
-            annotations={"aKeyA": "aValA"},
-            pod_spec=V1PodSpec(
-                containers=[
-                    V1Container(
-                        name="primary",
-                    ),
-                ]
+            container_image="repo/image:0.0.0",
+            pod_template=PodTemplate(
+                primary_container_name="primary",
+                labels={"lKeyA": "lValA"},
+                annotations={"aKeyA": "aValA"},
+                pod_spec=V1PodSpec(
+                    containers=[
+                        V1Container(
+                            name="primary",
+                        ),
+                    ]
+                ),
             ),
-        ),
-        pod_template_name="A",
-    )
+            pod_template_name="A",
+        )
     def func_with_pod_template(i: str):
-        print(i + "a")
+        print(f"{i}a")
 
     default_image = Image(name="default", fqn="docker.io/xyz", tag="some-git-hash")
     default_image_config = ImageConfig(default_image=default_image)

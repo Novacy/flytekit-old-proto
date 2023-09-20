@@ -35,7 +35,7 @@ class PyTorchTypeTransformer(TypeTransformer[T]):
             )
         )
 
-        local_path = ctx.file_access.get_random_local_path() + ".pt"
+        local_path = f"{ctx.file_access.get_random_local_path()}.pt"
         pathlib.Path(local_path).parent.mkdir(parents=True, exist_ok=True)
 
         # save pytorch tensor/module to a file
@@ -55,11 +55,7 @@ class PyTorchTypeTransformer(TypeTransformer[T]):
         ctx.file_access.get_data(uri, local_path, is_multipart=False)
 
         # cpu <-> gpu conversion
-        if torch.cuda.is_available():
-            map_location = "cuda:0"
-        else:
-            map_location = torch.device("cpu")
-
+        map_location = "cuda:0" if torch.cuda.is_available() else torch.device("cpu")
         # load pytorch tensor/module from a file
         return torch.load(local_path, map_location=map_location)
 

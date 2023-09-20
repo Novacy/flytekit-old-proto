@@ -49,7 +49,7 @@ def test_basics_1():
     od = OrderedDict()
     wf_1_spec = get_serializable(od, serialization_settings, my_wf_1)
     tts, wspecs, lps = gather_dependent_entities(od)
-    tts = [t for t in tts.values()]
+    tts = list(tts.values())
     assert len(tts) == 1
     assert len(wf_1_spec.template.nodes) == 2
     assert wf_1_spec.template.nodes[0].task_node.reference_id.name == tts[0].id.name
@@ -186,14 +186,11 @@ def test_everything(map_task_fn):
     def get_list_of_pd(s: int) -> typing.List[pd.DataFrame]:
         df1 = pd.DataFrame({"Name": ["Tom", "Joseph"], "Age": [20, 22]})
         df2 = pd.DataFrame({"Name": ["Rachel", "Eve", "Mary"], "Age": [22, 23, 24]})
-        if s == 2:
-            return [df1, df2]
-        else:
-            return [df1, df2, df1]
+        return [df1, df2] if s == 2 else [df1, df2, df1]
 
     @task
     def t3(a: int, b: str, c: typing.List[float], d: typing.List[float], a2: pd.DataFrame) -> str:
-        return str(a) + f"pdsize{len(a2)}" + b + str(c) + "&&" + str(d)
+        return f"{a}pdsize{len(a2)}{b}{str(c)}&&{str(d)}"
 
     t3_bind_b2 = partial(t3, b="world")
     # TODO: partial lists are not supported yet.

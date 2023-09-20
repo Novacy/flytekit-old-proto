@@ -455,20 +455,23 @@ class TaskTemplate(_common.FlyteIdlEntity):
         """
         :rtype: flyteidl.core.tasks_pb2.TaskTemplate
         """
-        task_template = _core_task.TaskTemplate(
+        return _core_task.TaskTemplate(
             id=self.id.to_flyte_idl(),
             type=self.type,
             metadata=self.metadata.to_flyte_idl(),
             interface=self.interface.to_flyte_idl(),
-            custom=_json_format.Parse(_json.dumps(self.custom), _struct.Struct()) if self.custom else None,
+            custom=_json_format.Parse(_json.dumps(self.custom), _struct.Struct())
+            if self.custom
+            else None,
             container=self.container.to_flyte_idl() if self.container else None,
             task_type_version=self.task_type_version,
-            security_context=self.security_context.to_flyte_idl() if self.security_context else None,
-            config={k: v for k, v in self.config.items()} if self.config is not None else None,
+            security_context=self.security_context.to_flyte_idl()
+            if self.security_context
+            else None,
+            config=dict(self.config.items()) if self.config is not None else None,
             k8s_pod=self.k8s_pod.to_flyte_idl() if self.k8s_pod else None,
             sql=self.sql.to_flyte_idl() if self.sql else None,
         )
-        return task_template
 
     @classmethod
     def from_flyte_idl(cls, pb2_object):
@@ -480,16 +483,31 @@ class TaskTemplate(_common.FlyteIdlEntity):
             id=_identifier.Identifier.from_flyte_idl(pb2_object.id),
             type=pb2_object.type,
             metadata=TaskMetadata.from_flyte_idl(pb2_object.metadata),
-            interface=_interface.TypedInterface.from_flyte_idl(pb2_object.interface),
-            custom=_json_format.MessageToDict(pb2_object.custom) if pb2_object else None,
-            container=Container.from_flyte_idl(pb2_object.container) if pb2_object.HasField("container") else None,
-            task_type_version=pb2_object.task_type_version,
-            security_context=_sec.SecurityContext.from_flyte_idl(pb2_object.security_context)
-            if pb2_object.security_context and pb2_object.security_context.ByteSize() > 0
+            interface=_interface.TypedInterface.from_flyte_idl(
+                pb2_object.interface
+            ),
+            custom=_json_format.MessageToDict(pb2_object.custom)
+            if pb2_object
             else None,
-            config={k: v for k, v in pb2_object.config.items()} if pb2_object.config is not None else None,
-            k8s_pod=K8sPod.from_flyte_idl(pb2_object.k8s_pod) if pb2_object.HasField("k8s_pod") else None,
-            sql=Sql.from_flyte_idl(pb2_object.sql) if pb2_object.HasField("sql") else None,
+            container=Container.from_flyte_idl(pb2_object.container)
+            if pb2_object.HasField("container")
+            else None,
+            task_type_version=pb2_object.task_type_version,
+            security_context=_sec.SecurityContext.from_flyte_idl(
+                pb2_object.security_context
+            )
+            if pb2_object.security_context
+            and pb2_object.security_context.ByteSize() > 0
+            else None,
+            config=dict(pb2_object.config.items())
+            if pb2_object.config is not None
+            else None,
+            k8s_pod=K8sPod.from_flyte_idl(pb2_object.k8s_pod)
+            if pb2_object.HasField("k8s_pod")
+            else None,
+            sql=Sql.from_flyte_idl(pb2_object.sql)
+            if pb2_object.HasField("sql")
+            else None,
         )
 
 
@@ -690,7 +708,7 @@ class DataLoadingConfig(_common.FlyteIdlEntity):
     ):
         if format not in self._LITERALMAP_FORMATS:
             raise ValueError(
-                "Metadata format {} not supported. Should be one of {}".format(format, self._LITERALMAP_FORMATS)
+                f"Metadata format {format} not supported. Should be one of {self._LITERALMAP_FORMATS}"
             )
         self._input_path = input_path
         self._output_path = output_path
@@ -853,15 +871,19 @@ class K8sObjectMetadata(_common.FlyteIdlEntity):
 
     def to_flyte_idl(self) -> _core_task.K8sObjectMetadata:
         return _core_task.K8sObjectMetadata(
-            labels={k: v for k, v in self.labels.items()} if self.labels is not None else None,
-            annotations={k: v for k, v in self.annotations.items()} if self.annotations is not None else None,
+            labels=dict(self.labels.items()) if self.labels is not None else None,
+            annotations=dict(self.annotations.items())
+            if self.annotations is not None
+            else None,
         )
 
     @classmethod
     def from_flyte_idl(cls, pb2_object: _core_task.K8sObjectMetadata):
         return cls(
-            labels={k: v for k, v in pb2_object.labels.items()} if pb2_object.labels is not None else None,
-            annotations={k: v for k, v in pb2_object.annotations.items()}
+            labels=dict(pb2_object.labels.items())
+            if pb2_object.labels is not None
+            else None,
+            annotations=dict(pb2_object.annotations.items())
             if pb2_object.annotations is not None
             else None,
         )

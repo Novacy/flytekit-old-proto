@@ -95,10 +95,7 @@ class ContainerTask(PythonTask):
 
     def get_container(self, settings: SerializationSettings) -> _task_model.Container:
         # if pod_template is specified, return None here but in get_k8s_pod, return pod_template merged with container
-        if self.pod_template is not None:
-            return None
-
-        return self._get_container(settings)
+        return None if self.pod_template is not None else self._get_container(settings)
 
     def _get_data_loading_config(self) -> _task_model.DataLoadingConfig:
         return _task_model.DataLoadingConfig(

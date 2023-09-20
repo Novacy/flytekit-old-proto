@@ -35,7 +35,7 @@ def _read_from_bq(
     _, project_id, dataset_id, table_id = re.split("\\.|://|:", path)
     client = bigquery_storage.BigQueryReadClient()
     table = f"projects/{project_id}/datasets/{dataset_id}/tables/{table_id}"
-    parent = "projects/{}".format(project_id)
+    parent = f"projects/{project_id}"
 
     read_options = None
     if current_task_metadata.structured_dataset_type and current_task_metadata.structured_dataset_type.columns:
@@ -47,9 +47,7 @@ def _read_from_bq(
 
     stream = read_session.streams[0]
     reader = client.read_rows(stream.name)
-    frames = []
-    for message in reader.rows().pages:
-        frames.append(message.to_dataframe())
+    frames = [message.to_dataframe() for message in reader.rows().pages]
     return pd.concat(frames)
 
 

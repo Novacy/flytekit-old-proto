@@ -10,30 +10,30 @@ from google.protobuf import struct_pb2 as _struct
 
 
 class FlyteABCMeta(_abc.ABCMeta):
-    def __instancecheck__(cls, instance):
-        if cls in type(instance).__mro__:
+    def __instancecheck__(self, instance):
+        if self in type(instance).__mro__:
             return True
-        return super(FlyteABCMeta, cls).__instancecheck__(instance)
+        return super(FlyteABCMeta, self).__instancecheck__(instance)
 
 
 class FlyteType(FlyteABCMeta):
-    def __repr__(cls):
-        return cls.short_class_string()
+    def __repr__(self):
+        return self.short_class_string()
 
-    def __str__(cls):
-        return cls.verbose_class_string()
+    def __str__(self):
+        return self.verbose_class_string()
 
-    def short_class_string(cls):
+    def short_class_string(self):
         """
         :rtype: Text
         """
-        return super(FlyteType, cls).__repr__()
+        return super(FlyteType, self).__repr__()
 
-    def verbose_class_string(cls):
+    def verbose_class_string(self):
         """
         :rtype: Text
         """
-        return cls.short_class_string()
+        return self.short_class_string()
 
     @_abc.abstractmethod
     def from_flyte_idl(cls, idl_object):
@@ -339,7 +339,7 @@ class Labels(FlyteIdlEntity):
         """
         :rtype: dict[Text, Text]
         """
-        return _common_pb2.Labels(values={k: v for k, v in self.values.items()})
+        return _common_pb2.Labels(values=dict(self.values.items()))
 
     @classmethod
     def from_flyte_idl(cls, pb2_object):
@@ -347,7 +347,7 @@ class Labels(FlyteIdlEntity):
         :param flyteidl.admin.common_pb2.Labels pb2_object:
         :rtype: Labels
         """
-        return cls({k: v for k, v in pb2_object.values.items()})
+        return cls(dict(pb2_object.values.items()))
 
 
 class Annotations(FlyteIdlEntity):
@@ -367,7 +367,7 @@ class Annotations(FlyteIdlEntity):
         """
         :rtype: _common_pb2.Annotations
         """
-        return _common_pb2.Annotations(values={k: v for k, v in self.values.items()})
+        return _common_pb2.Annotations(values=dict(self.values.items()))
 
     @classmethod
     def from_flyte_idl(cls, pb2_object):
@@ -375,7 +375,7 @@ class Annotations(FlyteIdlEntity):
         :param flyteidl.admin.common_pb2.Annotations pb2_object:
         :rtype: Annotations
         """
-        return cls({k: v for k, v in pb2_object.values.items()})
+        return cls(dict(pb2_object.values.items()))
 
 
 class UrlBlob(FlyteIdlEntity):

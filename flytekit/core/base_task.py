@@ -301,7 +301,7 @@ class Task(object):
             raise AssertionError(f"Length difference {len(output_names)} {len(outputs_literals)}")
 
         # Tasks that don't return anything still return a VoidPromise
-        if len(output_names) == 0:
+        if not output_names:
             return VoidPromise(self.name)
 
         vals = [Promise(var, outputs_literals[var]) for var in output_names]
@@ -516,7 +516,7 @@ class PythonTask(TrackedInstance, Task, Generic[T]):
                 native_outputs_as_map = {expected_output_names[0]: native_outputs[0]}
             else:
                 native_outputs_as_map = {expected_output_names[0]: native_outputs}
-        elif len(expected_output_names) == 0:
+        elif not expected_output_names:
             native_outputs_as_map = {}
         else:
             native_outputs_as_map = {expected_output_names[i]: native_outputs[i] for i, _ in enumerate(native_outputs)}
@@ -543,23 +543,23 @@ class PythonTask(TrackedInstance, Task, Generic[T]):
         return _literal_models.LiteralMap(literals=literals), native_outputs_as_map
 
     def _write_decks(self, native_inputs, native_outputs_as_map, ctx, new_user_params):
-        if self._disable_deck is False:
-            from flytekit.deck.deck import Deck, _output_deck
+        if self._disable_deck is not False:
+            return
+        from flytekit.deck.deck import Deck, _output_deck
 
-            INPUT = "input"
-            OUTPUT = "output"
+        INPUT = "input"
+        input_deck = Deck(INPUT)
+        for k, v in native_inputs.items():
+            input_deck.append(TypeEngine.to_html(ctx, v, self.get_type_for_input_var(k, v)))
 
-            input_deck = Deck(INPUT)
-            for k, v in native_inputs.items():
-                input_deck.append(TypeEngine.to_html(ctx, v, self.get_type_for_input_var(k, v)))
+        OUTPUT = "output"
+        output_deck = Deck(OUTPUT)
+        for k, v in native_outputs_as_map.items():
+            output_deck.append(TypeEngine.to_html(ctx, v, self.get_type_for_output_var(k, v)))
 
-            output_deck = Deck(OUTPUT)
-            for k, v in native_outputs_as_map.items():
-                output_deck.append(TypeEngine.to_html(ctx, v, self.get_type_for_output_var(k, v)))
-
-            if ctx.execution_state and ctx.execution_state.is_local_execution():
-                # When we run the workflow remotely, flytekit outputs decks at the end of _dispatch_execute
-                _output_deck(self.name.split(".")[-1], new_user_params)
+        if ctx.execution_state and ctx.execution_state.is_local_execution():
+            # When we run the workflow remotely, flytekit outputs decks at the end of _dispatch_execute
+            _output_deck(self.name.split(".")[-1], new_user_params)
 
     async def _async_execute(self, native_inputs, native_outputs, ctx, exec_ctx, new_user_params):
         native_outputs = await native_outputs

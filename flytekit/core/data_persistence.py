@@ -124,10 +124,7 @@ class FileAccessProvider(object):
             return fsspec.filesystem(protocol, **kwargs)  # type: ignore
 
         # Preserve old behavior of returning None for file systems that don't have an explicit anonymous option.
-        if anonymous:
-            return None
-
-        return fsspec.filesystem(protocol, **kwargs)  # type: ignore
+        return None if anonymous else fsspec.filesystem(protocol, **kwargs)
 
     def get_filesystem_for_path(self, path: str = "", anonymous: bool = False, **kwargs) -> fsspec.AbstractFileSystem:
         protocol = get_protocol(path)
@@ -139,9 +136,7 @@ class FileAccessProvider(object):
         Deprecated. Let's find a replacement
         """
         protocol = get_protocol(path)
-        if protocol is None:
-            return False
-        return protocol != "file"
+        return False if protocol is None else protocol != "file"
 
     @property
     def local_sandbox_dir(self) -> os.PathLike:
@@ -159,9 +154,7 @@ class FileAccessProvider(object):
         """
         Drops file:// if it exists from the file
         """
-        if path.startswith("file://"):
-            return path.replace("file://", "", 1)
-        return path
+        return path.replace("file://", "", 1) if path.startswith("file://") else path
 
     @staticmethod
     def recursive_paths(f: str, t: str) -> typing.Tuple[str, str]:

@@ -36,8 +36,7 @@ class ScopeableStatsProxy(object):
         self._client = client
         self._scope_prefix = prefix
         for extendable_func in self.EXTENDABLE_FUNC:
-            base_func = getattr(self._client, extendable_func)
-            if base_func:
+            if base_func := getattr(self._client, extendable_func):
                 setattr(self, extendable_func, self._create_wrapped_function(base_func))
 
     def _create_wrapped_function(self, base_func):
@@ -69,7 +68,7 @@ class ScopeableStatsProxy(object):
         if not self._scope_prefix or self._scope_prefix == "":
             prefix = name
         else:
-            prefix = self._scope_prefix + "." + name
+            prefix = f"{self._scope_prefix}.{name}"
 
         return ScopeableStatsProxy(self._client, prefix)
 
@@ -77,9 +76,7 @@ class ScopeableStatsProxy(object):
         return ScopeableStatsProxy(self._client.pipeline(), self._scope_prefix)
 
     def _p_with_prefix(self, name):
-        if name is None:
-            return name
-        return self._scope_prefix + "." + name
+        return name if name is None else f"{self._scope_prefix}.{name}"
 
     def _is_ascii(self, name):
         if sys.version_info >= (3, 7):

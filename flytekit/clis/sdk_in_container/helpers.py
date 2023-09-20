@@ -60,8 +60,8 @@ def patch_image_config(config_file: Optional[str], image_config: ImageConfig) ->
     # However, the run_level_params already contains both the default flytekit images (lowest priority), as well
     # as the images from the command line (highest priority). So when we read from the config file, we only
     # want to add in the images that are missing, including the default, if that's also missing.
-    additional_image_names = set([v.name for v in image_config.images])
-    new_additional_images = [v for v in image_config.images]
+    additional_image_names = {v.name for v in image_config.images}
+    new_additional_images = list(image_config.images)
     new_default = image_config.default_image
     if config_file:
         cfg_ic = ImageConfig.auto(config_file=config_file)

@@ -120,10 +120,10 @@ def to_serializable_cases(
 ) -> Optional[List[_core_wf.IfBlock]]:
     if cases is None:
         return None
-    ret_cases = []
-    for c in cases:
-        ret_cases.append(to_serializable_case(entity_mapping, settings, c, options))
-    return ret_cases
+    return [
+        to_serializable_case(entity_mapping, settings, c, options)
+        for c in cases
+    ]
 
 
 def get_command_prefix_for_fast_execute(settings: SerializationSettings) -> List[str]:
@@ -285,7 +285,7 @@ def get_serializable_workflow(
                 elif isinstance(leaf_node.flyte_entity, FlyteWorkflow):
                     get_serializable(entity_mapping, settings, leaf_node.flyte_entity, options)
                     sub_wfs.append(leaf_node.flyte_entity)
-                    sub_wfs.extend([s for s in leaf_node.flyte_entity.sub_workflows.values()])
+                    sub_wfs.extend(list(leaf_node.flyte_entity.sub_workflows.values()))
 
     wf_id = _identifier_model.Identifier(
         resource_type=_identifier_model.ResourceType.WORKFLOW,
@@ -366,7 +366,7 @@ def get_serializable_launch_plan(
         name=entity.name,
         version=settings.version,
     )
-    lp_model = _launch_plan_models.LaunchPlan(
+    return _launch_plan_models.LaunchPlan(
         id=lp_id,
         spec=lps,
         closure=_launch_plan_models.LaunchPlanClosure(
@@ -375,8 +375,6 @@ def get_serializable_launch_plan(
             expected_outputs=interface_models.VariableMap({}),
         ),
     )
-
-    return lp_model
 
 
 def get_serializable_node(
@@ -470,12 +468,11 @@ def get_serializable_node(
     elif isinstance(entity.flyte_entity, LaunchPlan):
         lp_spec = get_serializable(entity_mapping, settings, entity.flyte_entity, options=options)
 
-        # Node's inputs should not contain the data which is fixed input
-        node_input = []
-        for b in entity.bindings:
-            if b.var not in entity.flyte_entity.fixed_inputs.literals:
-                node_input.append(b)
-
+        node_input = [
+            b
+            for b in entity.bindings
+            if b.var not in entity.flyte_entity.fixed_inputs.literals
+        ]
         node_model = workflow_model.Node(
             id=_dnsify(entity.id),
             metadata=entity.metadata,
@@ -534,12 +531,11 @@ def get_serializable_node(
     elif isinstance(entity.flyte_entity, FlyteLaunchPlan):
         # Recursive call doesn't do anything except put the entity on the map.
         get_serializable(entity_mapping, settings, entity.flyte_entity, options=options)
-        # Node's inputs should not contain the data which is fixed input
-        node_input = []
-        for b in entity.bindings:
-            if b.var not in entity.flyte_entity.fixed_inputs.literals:
-                node_input.append(b)
-
+        node_input = [
+            b
+            for b in entity.bindings
+            if b.var not in entity.flyte_entity.fixed_inputs.literals
+        ]
         node_model = workflow_model.Node(
             id=_dnsify(entity.id),
             metadata=entity.metadata,
@@ -707,16 +703,15 @@ def get_serializable(
     elif isinstance(entity, BranchNode):
         cp_entity = get_serializable_branch_node(entity_mapping, settings, entity, options)
 
-    elif isinstance(entity, FlyteTask) or isinstance(entity, FlyteWorkflow):
+    elif isinstance(entity, (FlyteTask, FlyteWorkflow)):
         if entity.should_register:
             if isinstance(entity, FlyteTask):
                 cp_entity = get_serializable_flyte_task(entity, settings)
             else:
-                if entity.should_register:
-                    # We only add the tasks if the should register flag is set. This is to avoid adding
-                    # unnecessary tasks to the registrable list.
-                    for t in entity.flyte_tasks:
-                        get_serializable(entity_mapping, settings, t, options)
+                # We only add the tasks if the should register flag is set. This is to avoid adding
+                # unnecessary tasks to the registrable list.
+                for t in entity.flyte_tasks:
+                    get_serializable(entity_mapping, settings, t, options)
                 cp_entity = get_serializable_flyte_workflow(entity, settings)
         else:
             cp_entity = entity
@@ -727,7 +722,7 @@ def get_serializable(
     else:
         raise Exception(f"Non serializable type found {type(entity)} Entity {entity}")
 
-    if isinstance(entity, TaskSpec) or isinstance(entity, WorkflowSpec):
+    if isinstance(entity, (TaskSpec, WorkflowSpec)):
         # 1. Check if the size of long description exceeds 16KB
         # 2. Extract the repo URL from the git config, and assign it to the link of the source code of the description entity
         if entity.docs and entity.docs.long_description:

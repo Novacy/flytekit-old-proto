@@ -61,7 +61,7 @@ class SQLTask(PythonTask[T]):
         """
         modified_query = query_template
         matched = set()
-        for match in cls._INPUT_REGEX.finditer(query_template):
+        for match in cls._INPUT_REGEX.finditer(modified_query):
             expr = match.groups()[0]
             var = match.groups()[1]
             if var not in kwargs:

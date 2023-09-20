@@ -159,8 +159,10 @@ class ShellTask(PythonInstanceTask[T]):
             script_file = os.path.abspath(script_file)
 
         if task_config is not None:
-            fully_qualified_class_name = task_config.__module__ + "." + task_config.__class__.__name__
-            if not fully_qualified_class_name == "flytekitplugins.pod.task.Pod":
+            fully_qualified_class_name = (
+                f"{task_config.__module__}.{task_config.__class__.__name__}"
+            )
+            if fully_qualified_class_name != "flytekitplugins.pod.task.Pod":
                 raise ValueError("TaskConfig can either be empty - indicating simple container task or a PodConfig.")
 
         # Each instance of NotebookTask instantiates an underlying task with a dummy function that will only be used
@@ -264,9 +266,7 @@ class ShellTask(PythonInstanceTask[T]):
                 final_outputs.append(FlyteDirectory(outputs[v.var]))
         if len(final_outputs) == 1:
             return final_outputs[0]
-        if len(final_outputs) > 1:
-            return tuple(final_outputs)
-        return None
+        return tuple(final_outputs) if len(final_outputs) > 1 else None
 
     def post_execute(self, user_params: ExecutionParameters, rval: typing.Any) -> typing.Any:
         return self._config_task_instance.post_execute(user_params, rval)
@@ -326,9 +326,7 @@ class RawShellTask(ShellTask):
         ...
         ```
         """
-        items = []
-        for k, v in d.items():
-            items.append(f"export {k}={v}")
+        items = [f"export {k}={v}" for k, v in d.items()]
         return "\n".join(items)
 
     def execute(self, **kwargs) -> typing.Any:
@@ -378,9 +376,7 @@ class RawShellTask(ShellTask):
                 final_outputs.append(FlyteDirectory(outputs[v.var]))
         if len(final_outputs) == 1:
             return final_outputs[0]
-        if len(final_outputs) > 1:
-            return tuple(final_outputs)
-        return None
+        return tuple(final_outputs) if len(final_outputs) > 1 else None
 
 
 # The raw_shell_task is an instance of RawShellTask and wraps a 'pure' shell script

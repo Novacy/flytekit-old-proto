@@ -74,7 +74,7 @@ class StructuredDataset(DataClassJSONMixin):
         # https://github.com/flyteorg/flytekit/blob/bcc8541bd6227b532f8462563fe8aac902242b21/flytekit/core/type_engine.py#L298
         self.uri = uri
         # When dataclass_json runs from_json, we need to set it here, otherwise the format will be empty string
-        self.file_format = kwargs["file_format"] if "file_format" in kwargs else GENERIC_FORMAT
+        self.file_format = kwargs.get("file_format", GENERIC_FORMAT)
         # This is a special attribute that indicates if the data was either downloaded or uploaded
         self._metadata = metadata
         # This is not for users to set, the transformer will set this.
@@ -361,14 +361,12 @@ class StructuredDatasetTransformerEngine(TypeTransformer[StructuredDataset]):
                 fsspec_handler = fss_handlers[format]
             elif GENERIC_FORMAT in fss_handlers:
                 fsspec_handler = fss_handlers[GENERIC_FORMAT]
+            elif default_format and default_format in fss_handlers and format == GENERIC_FORMAT:
+                fsspec_handler = fss_handlers[default_format]
+            elif len(fss_handlers) == 1 and format == GENERIC_FORMAT:
+                single_handler = list(fss_handlers.values())[0]
             else:
-                if default_format and default_format in fss_handlers and format == GENERIC_FORMAT:
-                    fsspec_handler = fss_handlers[default_format]
-                else:
-                    if len(fss_handlers) == 1 and format == GENERIC_FORMAT:
-                        single_handler = list(fss_handlers.values())[0]
-                    else:
-                        ...
+                ...
         except KeyError:
             ...
 
@@ -376,14 +374,12 @@ class StructuredDatasetTransformerEngine(TypeTransformer[StructuredDataset]):
             protocol_handlers = handler_map[df_type][protocol]
             if GENERIC_FORMAT in protocol_handlers:
                 protocol_specific_handler = protocol_handlers[GENERIC_FORMAT]
+            elif default_format and default_format in protocol_handlers:
+                protocol_specific_handler = protocol_handlers[default_format]
+            elif len(protocol_handlers) == 1:
+                single_handler = list(protocol_handlers.values())[0]
             else:
-                if default_format and default_format in protocol_handlers:
-                    protocol_specific_handler = protocol_handlers[default_format]
-                else:
-                    if len(protocol_handlers) == 1:
-                        single_handler = list(protocol_handlers.values())[0]
-                    else:
-                        ...
+                ...
 
         except KeyError:
             ...
@@ -450,7 +446,9 @@ class StructuredDatasetTransformerEngine(TypeTransformer[StructuredDataset]):
         :param default_storage_for_type: Same as above but only for the storage format. Error if already set,
           unless override is specified.
         """
-        if not (isinstance(h, StructuredDatasetEncoder) or isinstance(h, StructuredDatasetDecoder)):
+        if not (
+            isinstance(h, (StructuredDatasetEncoder, StructuredDatasetDecoder))
+        ):
             raise TypeError(f"We don't support this type of handler {h}")
 
         if h.protocol is None:
@@ -486,7 +484,7 @@ class StructuredDatasetTransformerEngine(TypeTransformer[StructuredDataset]):
         if protocol == "/":
             protocol = "file"
         lowest_level = cls._handler_finder(h, protocol)
-        if h.supported_format in lowest_level and override is False:
+        if h.supported_format in lowest_level and not override:
             raise DuplicateHandlerError(
                 f"Already registered a handler for {(h.python_type, protocol, h.supported_format)}"
             )
@@ -607,12 +605,11 @@ class StructuredDatasetTransformerEngine(TypeTransformer[StructuredDataset]):
         """
         if df_type in self.DEFAULT_PROTOCOLS:
             return self.DEFAULT_PROTOCOLS[df_type]
-        else:
-            protocol = get_protocol(uri or ctx.file_access.raw_output_prefix)
-            logger.debug(
-                f"No default protocol for type {df_type} found, using {protocol} from output prefix {ctx.file_access.raw_output_prefix}"
-            )
-            return protocol
+        protocol = get_protocol(uri or ctx.file_access.raw_output_prefix)
+        logger.debug(
+            f"No default protocol for type {df_type} found, using {protocol} from output prefix {ctx.file_access.raw_output_prefix}"
+        )
+        return protocol
 
     def encode(
         self,
@@ -682,41 +679,39 @@ class StructuredDatasetTransformerEngine(TypeTransformer[StructuredDataset]):
         # We'll continue to support this for the time being. There is some duplicated logic here but let's
         # keep it copy/pasted for clarity
         if lv.scalar.schema is not None:
-            schema_columns = lv.scalar.schema.type.columns
-
             # See the repeated logic below for comments
             if column_dict is None or len(column_dict) == 0:
                 final_dataset_columns = []
+                schema_columns = lv.scalar.schema.type.columns
+
                 if schema_columns is not None and schema_columns != []:
-                    for c in schema_columns:
-                        final_dataset_columns.append(
-                            StructuredDatasetType.DatasetColumn(
-                                name=c.name,
-                                literal_type=LiteralType(
-                                    simple=convert_schema_type_to_structured_dataset_type(c.type),
+                    final_dataset_columns.extend(
+                        StructuredDatasetType.DatasetColumn(
+                            name=c.name,
+                            literal_type=LiteralType(
+                                simple=convert_schema_type_to_structured_dataset_type(
+                                    c.type
                                 ),
-                            )
+                            ),
                         )
-                # Dataframe will always be serialized to parquet file by FlyteSchema transformer
-                new_sdt = StructuredDatasetType(columns=final_dataset_columns, format=PARQUET)
+                        for c in schema_columns
+                    )
             else:
                 final_dataset_columns = self._convert_ordered_dict_of_columns_to_list(column_dict)
-                # Dataframe will always be serialized to parquet file by FlyteSchema transformer
-                new_sdt = StructuredDatasetType(columns=final_dataset_columns, format=PARQUET)
-
+            # Dataframe will always be serialized to parquet file by FlyteSchema transformer
+            new_sdt = StructuredDatasetType(columns=final_dataset_columns, format=PARQUET)
             metad = literals.StructuredDatasetMetadata(structured_dataset_type=new_sdt)
             sd_literal = literals.StructuredDataset(
                 uri=lv.scalar.schema.uri,
                 metadata=metad,
             )
 
-            if issubclass(expected_python_type, StructuredDataset):
-                sd = StructuredDataset(dataframe=None, metadata=metad)
-                sd._literal_sd = sd_literal
-                return sd
-            else:
+            if not issubclass(expected_python_type, StructuredDataset):
                 return self.open_as(ctx, sd_literal, expected_python_type, metad)
 
+            sd = StructuredDataset(dataframe=None, metadata=metad)
+            sd._literal_sd = sd_literal
+            return sd
         # Start handling for StructuredDataset scalars, first look at the columns
         incoming_columns = lv.scalar.structured_dataset.metadata.structured_dataset_type.columns
 

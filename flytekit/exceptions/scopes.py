@@ -73,7 +73,7 @@ class FlyteScopedException(Exception):
 
         if hasattr(type(self._exc_value), "error_code"):
             return type(self._exc_value).error_code
-        return "{}:Unknown".format(self._context)
+        return f"{self._context}:Unknown"
 
     @property
     def kind(self) -> int:

@@ -21,7 +21,7 @@ from flytekit.tools.translator import get_serializable
 def test_normal_task():
     @task
     def t1(a: str) -> str:
-        return a + " world"
+        return f"{a} world"
 
     @dynamic
     def my_subwf(a: int) -> typing.List[str]:
@@ -153,8 +153,8 @@ def test_runs_before():
 
     @task()
     def sleep_task(a: int) -> str:
-        a = a + 2
-        return "world-" + str(a)
+        a += 2
+        return f"world-{a}"
 
     @dynamic
     def my_subwf(a: int) -> (typing.List[str], int):

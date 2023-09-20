@@ -65,9 +65,7 @@ class MapPythonTask(PythonTask):
             actual_task = python_function_task
 
         if not isinstance(actual_task, PythonFunctionTask):
-            if isinstance(actual_task, PythonInstanceTask):
-                pass
-            else:
+            if not isinstance(actual_task, PythonInstanceTask):
                 raise ValueError("Map tasks can only compose of PythonFuncton and PythonInstanceTasks currently")
 
         n_outputs = len(actual_task.python_interface.outputs.keys())
@@ -258,9 +256,7 @@ class MapPythonTask(PythonTask):
         This is called during locally run executions. Unlike array task execution on the Flyte platform, _raw_execute
         produces the full output collection.
         """
-        outputs_expected = True
-        if not self.interface.outputs:
-            outputs_expected = False
+        outputs_expected = bool(self.interface.outputs)
         outputs = []
 
         any_input_key = (
@@ -277,8 +273,8 @@ class MapPythonTask(PythonTask):
                     single_instance_inputs[k] = kwargs[k][i]
                 else:
                     single_instance_inputs[k] = kwargs[k]
-            o = exception_scopes.user_entry_point(self._run_task.execute)(**single_instance_inputs)
             if outputs_expected:
+                o = exception_scopes.user_entry_point(self._run_task.execute)(**single_instance_inputs)
                 outputs.append(o)
 
         return outputs

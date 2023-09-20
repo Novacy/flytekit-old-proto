@@ -37,7 +37,7 @@ def square(n: float) -> float:
         float: The label for the output will be automatically assigned and type will be deduced from the annotation
 
     """
-    return n * n
+    return n**2
 
 
 @task

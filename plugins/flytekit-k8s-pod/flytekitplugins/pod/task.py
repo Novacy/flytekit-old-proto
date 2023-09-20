@@ -59,11 +59,10 @@ class PodFunctionTask(PythonFunctionTask[Pod]):
 
     def _serialize_pod_spec(self, settings: SerializationSettings) -> Dict[str, Any]:
         containers = self.task_config.pod_spec.containers
-        primary_exists = False
-        for container in containers:
-            if container.name == self.task_config.primary_container_name:
-                primary_exists = True
-                break
+        primary_exists = any(
+            container.name == self.task_config.primary_container_name
+            for container in containers
+        )
         if not primary_exists:
             # insert a placeholder primary container if it is not defined in the pod spec.
             containers.append(V1Container(name=self.task_config.primary_container_name))
@@ -88,7 +87,7 @@ class PodFunctionTask(PythonFunctionTask[Pod]):
                     requests[_sanitize_resource_name(resource)] = resource.value
 
                 resource_requirements = V1ResourceRequirements(limits=limits, requests=requests)
-                if len(limits) > 0 or len(requests) > 0:
+                if limits or requests:
                     # Important! Only copy over resource requirements if they are non-empty.
                     container.resources = resource_requirements
 

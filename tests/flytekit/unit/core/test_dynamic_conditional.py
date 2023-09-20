@@ -16,7 +16,7 @@ seed(datetime.now().microsecond)
 def test_dynamic_conditional():
     @task
     def split(in1: typing.List[int]) -> (typing.List[int], typing.List[int], int):
-        return in1[0 : int(len(in1) / 2)], in1[int(len(in1) / 2) + 1 :], len(in1) / 2
+        return in1[:int(len(in1) / 2)], in1[int(len(in1) / 2) + 1 :], len(in1) / 2
 
     # One sample implementation for merging. In a more real world example, this might merge file streams and only load
     # chunks into the memory.
@@ -34,20 +34,20 @@ def test_dynamic_conditional():
             # store first array element and increment first array index. Otherwise do same with second array
             if x[i] < y[j]:
                 result.append(x[i])
-                i = i + 1
+                i += 1
             else:
                 result.append(y[j])
-                j = j + 1
+                j += 1
 
         # Store remaining elements of first array
         while i < n1:
             result.append(x[i])
-            i = i + 1
+            i += 1
 
         # Store remaining elements of second array
         while j < n2:
             result.append(y[j])
-            j = j + 1
+            j += 1
 
         return result
 

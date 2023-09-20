@@ -218,7 +218,7 @@ class GreatExpectationsTask(PythonInstanceTask[BatchRequestConfig]):
         # identify every run uniquely
         run_id = RunIdentifier(
             **{
-                "run_name": self._datasource_name + "_run",
+                "run_name": f"{self._datasource_name}_run",
                 "run_time": datetime.datetime.utcnow(),
             }
         )
@@ -234,17 +234,17 @@ class GreatExpectationsTask(PythonInstanceTask[BatchRequestConfig]):
         )
         final_result = convert_to_json_serializable(checkpoint_result.list_validation_results())[0]
 
-        result_string = ""
         if final_result["success"] is False:
-            for every_result in final_result["results"]:
-                if every_result["success"] is False:
-                    result_string += (
-                        every_result["expectation_config"]["kwargs"]["column"]
-                        + " -> "
-                        + every_result["expectation_config"]["expectation_type"]
-                        + "\n"
-                    )
-
+            result_string = "".join(
+                (
+                    every_result["expectation_config"]["kwargs"]["column"]
+                    + " -> "
+                    + every_result["expectation_config"]["expectation_type"]
+                    + "\n"
+                )
+                for every_result in final_result["results"]
+                if every_result["success"] is False
+            )
             # raise a Great Expectations' exception
             raise ValidationError("Validation failed!\nCOLUMN\t\tFAILED EXPECTATION\n" + result_string)
 

@@ -23,8 +23,7 @@ def say_hello() -> str:
 # def my_wf(name: str) -> str:
 @workflow
 def my_wf() -> str:
-    res = say_hello()
-    return res
+    return say_hello()
 
 
 # %%

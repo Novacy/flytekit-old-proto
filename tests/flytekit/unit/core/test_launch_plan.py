@@ -29,8 +29,8 @@ serialization_settings = flytekit.configuration.SerializationSettings(
 def test_lp_documentation():
     @task
     def t1(a: int) -> typing.NamedTuple("OutputsBC", t1_int_output=int, c=str):
-        a = a + 2
-        return a, "world-" + str(a)
+        a += 2
+        return a, f"world-{a}"
 
     @workflow
     def wf(a: int, c: str) -> (int, str):
@@ -80,8 +80,8 @@ def test_lp_documentation():
 def test_lp():
     @task
     def t1(a: int) -> typing.NamedTuple("OutputsBC", t1_int_output=int, c=str):
-        a = a + 2
-        return a, "world-" + str(a)
+        a += 2
+        return a, f"world-{a}"
 
     @workflow
     def wf(a: int) -> (str, str):
@@ -108,8 +108,8 @@ def test_lp():
 def test_lp_each_parameter():
     @task
     def t1(a: int) -> typing.NamedTuple("OutputsBC", t1_int_output=int, c=str):
-        a = a + 2
-        return a, "world-" + str(a)
+        a += 2
+        return a, f"world-{a}"
 
     @workflow
     def wf(a: int, c: str) -> (int, str):
@@ -296,8 +296,8 @@ def test_lp_all_parameters():
 
     @task
     def t1(a: int) -> nt:
-        a = a + 2
-        return nt(a, "world-" + str(a))
+        a += 2
+        return nt(a, f"world-{a}")
 
     @task
     def t2(a: str, b: str, c: str) -> str:
@@ -391,8 +391,8 @@ def test_lp_nodes():
 def test_lp_with_docstring():
     @task
     def t1(a: int) -> typing.NamedTuple("OutputsBC", t1_int_output=int, c=str):
-        a = a + 2
-        return a, "world-" + str(a)
+        a += 2
+        return a, f"world-{a}"
 
     @workflow
     def wf_with_docstring(a: int) -> (str, str):

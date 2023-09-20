@@ -37,7 +37,7 @@ class Filter(_FlyteIdlEntity):
         For supporting the auto-generated REST API, filters must be dumped to a string for representation as GET params.
         :rtype: Text
         """
-        return "{}({},{})".format(type(self)._comparator, self._key, self._value)
+        return f"{type(self)._comparator}({self._key},{self._value})"
 
     @classmethod
     def from_flyte_idl(cls):
@@ -66,7 +66,7 @@ class Filter(_FlyteIdlEntity):
         elif string.startswith("value_in("):
             return ValueIn._parse_from_string(string)
         else:
-            raise ValueError("'{}' could not be parsed into a filter.".format(string))
+            raise ValueError(f"'{string}' could not be parsed into a filter.")
 
     @classmethod
     def _parse_from_string(cls, string):
@@ -76,7 +76,9 @@ class Filter(_FlyteIdlEntity):
         """
         stripped = string[len(cls._comparator) + 1 :]
         if stripped[-1] != ")":
-            raise ValueError("Filter could not be parsed because {} did not end with a ')'".format(string))
+            raise ValueError(
+                f"Filter could not be parsed because {string} did not end with a ')'"
+            )
         split = stripped[:-1].split(",")
         if len(split) != 2:
             raise ValueError("Filter must be expressed as a key, value tuple like 'eq(abc,def)'")

@@ -99,8 +99,7 @@ def pretty_print_exception(e: Exception):
             click.secho("Request rejected by the API, due to Invalid input.", fg="red")
             click.secho(f"\tInput Request: {MessageToJson(e.request)}", dim=True)
 
-        cause = e.__cause__
-        if cause:
+        if cause := e.__cause__:
             if isinstance(cause, grpc.RpcError):
                 pretty_print_grpc_error(cause)
             else:

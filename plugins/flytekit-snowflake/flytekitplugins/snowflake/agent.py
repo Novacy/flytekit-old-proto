@@ -49,13 +49,11 @@ class SnowflakeAgent(AgentBase):
         pk_string = flytekit.current_context().secrets.get(TASK_TYPE, "private_key", encode_mode="rb")
         p_key = serialization.load_pem_private_key(pk_string, password=None, backend=default_backend())
 
-        pkb = p_key.private_bytes(
+        return p_key.private_bytes(
             encoding=serialization.Encoding.DER,
             format=serialization.PrivateFormat.PKCS8,
             encryption_algorithm=serialization.NoEncryption(),
         )
-
-        return pkb
 
     def get_connection(self, metadata: Metadata) -> snowflake.connector:
         return snowflake.connector.connect(

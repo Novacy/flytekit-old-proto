@@ -188,10 +188,7 @@ def get_one_of(*args) -> str:
     :param args: List of environment variables to look for.
     :return: The first defined value in the environment, or an empty string if nothing is found.
     """
-    for k in args:
-        if k in os.environ:
-            return os.environ[k]
-    return ""
+    return next((os.environ[k] for k in args if k in os.environ), "")
 
 
 @contextlib.contextmanager
@@ -349,7 +346,7 @@ def _execute_task(
         code archives should be installed in the flyte task container.
     :return:
     """
-    if len(resolver_args) < 1:
+    if not resolver_args:
         raise Exception("cannot be <1")
 
     with setup_execution(
@@ -403,7 +400,7 @@ def _execute_map_task(
     :param resolver_args: Args that will be passed to the aforementioned resolver's load_task function
     :return:
     """
-    if len(resolver_args) < 1:
+    if not resolver_args:
         raise Exception(f"Resolver args cannot be <1, got {resolver_args}")
 
     with setup_execution(
@@ -439,7 +436,7 @@ def normalize_inputs(
         raw_output_data_prefix = None
     if checkpoint_path == "{{.checkpointOutputPrefix}}":
         checkpoint_path = None
-    if prev_checkpoint == "{{.prevCheckpointPrefix}}" or prev_checkpoint == "" or prev_checkpoint == '""':
+    if prev_checkpoint in ["{{.prevCheckpointPrefix}}", "", '""']:
         prev_checkpoint = None
 
     return raw_output_data_prefix, checkpoint_path, prev_checkpoint

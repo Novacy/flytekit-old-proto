@@ -278,14 +278,21 @@ class MatchingAttributes(_common.FlyteIdlEntity):
         :param ExecutionClusterLabel execution_cluster_label:
         :param PluginOverrides plugin_overrides:
         """
-        if cluster_resource_attributes:
-            if execution_queue_attributes or execution_cluster_label or plugin_overrides:
-                raise ValueError("Only one target can be set")
-        elif execution_queue_attributes and (execution_cluster_label or plugin_overrides):
+        if (
+            cluster_resource_attributes
+            and (
+                execution_queue_attributes
+                or execution_cluster_label
+                or plugin_overrides
+            )
+            or not cluster_resource_attributes
+            and execution_queue_attributes
+            and (execution_cluster_label or plugin_overrides)
+            or not cluster_resource_attributes
+            and execution_cluster_label
+            and plugin_overrides
+        ):
             raise ValueError("Only one target can be set")
-        elif execution_cluster_label and plugin_overrides:
-            raise ValueError("Only one target can be set")
-
         self._cluster_resource_attributes = cluster_resource_attributes
         self._execution_queue_attributes = execution_queue_attributes
         self._execution_cluster_label = execution_cluster_label

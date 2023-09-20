@@ -276,11 +276,9 @@ class ExecutionParameters(object):
     def timeline_deck(self) -> "TimeLineDeck":  # type: ignore
         from flytekit.deck.deck import TimeLineDeck
 
-        time_line_deck = None
-        for deck in self.decks:
-            if isinstance(deck, TimeLineDeck):
-                time_line_deck = deck
-                break
+        time_line_deck = next(
+            (deck for deck in self.decks if isinstance(deck, TimeLineDeck)), None
+        )
         if time_line_deck is None:
             time_line_deck = TimeLineDeck("timeline")
 
@@ -297,9 +295,7 @@ class ExecutionParameters(object):
 
     def has_attr(self, attr_name: str) -> bool:
         attr_name = attr_name.upper()
-        if self._attrs and attr_name in self._attrs:
-            return True
-        return False
+        return bool(self._attrs and attr_name in self._attrs)
 
     def get(self, key: str) -> typing.Any:
         """
@@ -388,7 +384,7 @@ class SecretsManager(object):
 
     @staticmethod
     def check_group_key(group: str):
-        if group is None or group == "":
+        if group is None or not group:
             raise ValueError("secrets group is a mandatory field.")
 
 
@@ -548,10 +544,10 @@ class ExecutionState(object):
         )
 
     def is_local_execution(self):
-        return (
-            self.mode == ExecutionState.Mode.LOCAL_TASK_EXECUTION
-            or self.mode == ExecutionState.Mode.LOCAL_WORKFLOW_EXECUTION
-        )
+        return self.mode in [
+            ExecutionState.Mode.LOCAL_TASK_EXECUTION,
+            ExecutionState.Mode.LOCAL_WORKFLOW_EXECUTION,
+        ]
 
 
 @dataclass(frozen=True)
@@ -578,9 +574,7 @@ class FlyteContext(object):
 
     @property
     def user_space_params(self) -> Optional[ExecutionParameters]:
-        if self.execution_state:
-            return self.execution_state.user_space_params
-        return None
+        return self.execution_state.user_space_params if self.execution_state else None
 
     def set_stackframe(self, s: traceback.FrameSummary):
         object.__setattr__(self, "origin_stackframe", s)
@@ -776,9 +770,7 @@ class FlyteContextManager(object):
     @staticmethod
     def get_origin_stackframe(limit=2) -> traceback.FrameSummary:
         ss = traceback.extract_stack(limit=limit + 1)
-        if len(ss) > limit + 1:
-            return ss[limit]
-        return ss[0]
+        return ss[limit] if len(ss) > limit + 1 else ss[0]
 
     @staticmethod
     def current_context() -> FlyteContext:

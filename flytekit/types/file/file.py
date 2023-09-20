@@ -300,9 +300,7 @@ class FlyteFilePathTransformer(TypeTransformer[FlyteFile]):
 
     @staticmethod
     def get_format(t: typing.Union[typing.Type[FlyteFile], os.PathLike]) -> str:
-        if t is os.PathLike:
-            return ""
-        return typing.cast(FlyteFile, t).extension()
+        return "" if t is os.PathLike else typing.cast(FlyteFile, t).extension()
 
     def _blob_type(self, format: str) -> BlobType:
         return BlobType(format=format, dimensionality=BlobType.BlobDimensionality.SINGLE)
@@ -310,7 +308,7 @@ class FlyteFilePathTransformer(TypeTransformer[FlyteFile]):
     def assert_type(
         self, t: typing.Union[typing.Type[FlyteFile], os.PathLike], v: typing.Union[FlyteFile, os.PathLike, str]
     ):
-        if isinstance(v, os.PathLike) or isinstance(v, FlyteFile) or isinstance(v, str):
+        if isinstance(v, (os.PathLike, FlyteFile, str)):
             return
         raise TypeError(
             f"No automatic conversion found from type {type(v)} to FlyteFile."
@@ -336,7 +334,9 @@ class FlyteFilePathTransformer(TypeTransformer[FlyteFile]):
         # Correctly handle `Annotated[FlyteFile, ...]` by extracting the origin type
         python_type = get_underlying_type(python_type)
 
-        if not (python_type is os.PathLike or issubclass(python_type, FlyteFile)):
+        if python_type is not os.PathLike and not issubclass(
+            python_type, FlyteFile
+        ):
             raise ValueError(f"Incorrect type {python_type}, must be either a FlyteFile or os.PathLike")
 
         # information used by all cases
@@ -366,36 +366,32 @@ class FlyteFilePathTransformer(TypeTransformer[FlyteFile]):
             # Set the remote destination if one was given instead of triggering a random one below
             remote_path = python_val.remote_path or None
 
-        elif isinstance(python_val, pathlib.Path) or isinstance(python_val, str):
+        elif isinstance(python_val, (pathlib.Path, str)):
             source_path = str(python_val)
-            if issubclass(python_type, FlyteFile):
-                if ctx.file_access.is_remote(source_path):
-                    should_upload = False
-                else:
-                    if isinstance(python_val, pathlib.Path) and not python_val.is_file():
-                        raise ValueError(f"Error converting pathlib.Path {python_val} because it's not a file.")
-
-                    # If it's a string pointing to a local destination, then make sure it's a file.
-                    if isinstance(python_val, str):
-                        p = pathlib.Path(python_val)
-                        if not p.is_file():
-                            raise TypeTransformerFailedError(f"Error converting {python_val} because it's not a file.")
-            # python_type must be os.PathLike - see check at beginning of function
-            else:
+            if (
+                issubclass(python_type, FlyteFile)
+                and ctx.file_access.is_remote(source_path)
+                or not issubclass(python_type, FlyteFile)
+            ):
                 should_upload = False
+            else:
+                if isinstance(python_val, pathlib.Path) and not python_val.is_file():
+                    raise ValueError(f"Error converting pathlib.Path {python_val} because it's not a file.")
 
+                # If it's a string pointing to a local destination, then make sure it's a file.
+                if isinstance(python_val, str):
+                    p = pathlib.Path(python_val)
+                    if not p.is_file():
+                        raise TypeTransformerFailedError(f"Error converting {python_val} because it's not a file.")
         else:
             raise TypeTransformerFailedError(f"Expected FlyteFile or os.PathLike object, received {type(python_val)}")
 
-        # If we're uploading something, that means that the uri should always point to the upload destination.
-        if should_upload:
-            if remote_path is None:
-                remote_path = ctx.file_access.get_random_remote_path(source_path)
-            ctx.file_access.put_data(source_path, remote_path, is_multipart=False)
-            return Literal(scalar=Scalar(blob=Blob(metadata=meta, uri=remote_path)))
-        # If not uploading, then we can only take the original source path as the uri.
-        else:
+        if not should_upload:
             return Literal(scalar=Scalar(blob=Blob(metadata=meta, uri=source_path)))
+        if remote_path is None:
+            remote_path = ctx.file_access.get_random_remote_path(source_path)
+        ctx.file_access.put_data(source_path, remote_path, is_multipart=False)
+        return Literal(scalar=Scalar(blob=Blob(metadata=meta, uri=remote_path)))
 
     def to_python_value(
         self, ctx: FlyteContext, lv: Literal, expected_python_type: typing.Union[typing.Type[FlyteFile], os.PathLike]

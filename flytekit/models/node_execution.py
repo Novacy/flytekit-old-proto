@@ -52,11 +52,12 @@ class DynamicWorkflowNodeMetadata(_common_models.FlyteIdlEntity):
 
     @classmethod
     def from_flyte_idl(cls, p: _node_execution_pb2.DynamicWorkflowNodeMetadata) -> "DynamicWorkflowNodeMetadata":
-        yy = cls(
+        return cls(
             id=_identifier.Identifier.from_flyte_idl(p.id),
-            compiled_workflow=core_compiler_models.CompiledWorkflowClosure.from_flyte_idl(p.compiled_workflow),
+            compiled_workflow=core_compiler_models.CompiledWorkflowClosure.from_flyte_idl(
+                p.compiled_workflow
+            ),
         )
-        return yy
 
 
 class TaskNodeMetadata(_common_models.FlyteIdlEntity):

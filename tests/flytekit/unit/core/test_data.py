@@ -230,7 +230,7 @@ def test_crawl_local_nt(source_folder):
     source_folder = os.path.join(source_folder, "")  # ensure there's a trailing / or \
     fd = FlyteDirectory(path=source_folder)
     res = fd.crawl()
-    split = [(x, y) for x, y in res]
+    split = list(res)
     print(f"NT split {split}")
 
     # Test crawling a directory without trailing / or \
@@ -252,7 +252,7 @@ def test_crawl_local_non_nt(source_folder):
     source_folder = os.path.join(source_folder, "")  # ensure there's a trailing / or \
     fd = FlyteDirectory(path=source_folder)
     res = fd.crawl()
-    split = [(x, y) for x, y in res]
+    split = list(res)
     files = [os.path.join(x, y) for x, y in split]
     assert set(split) == {(source_folder, "original.txt"), (source_folder, os.path.join("nested", "more.txt"))}
     expected = {os.path.join(source_folder, "original.txt"), os.path.join(source_folder, "nested", "more.txt")}
@@ -269,7 +269,7 @@ def test_crawl_local_non_nt(source_folder):
     fd = FlyteDirectory(path=os.path.join(source_folder, "original.txt"))
     res = fd.crawl()
     files = [os.path.join(x, y) for x, y in res]
-    assert len(files) == 0
+    assert not files
 
 
 @pytest.mark.sandbox_test
@@ -291,14 +291,14 @@ def test_crawl_s3(source_folder):
     with FlyteContextManager.with_context(ctx.with_file_access(provider)):
         fd = FlyteDirectory(path=s3_random_target)
         res = fd.crawl()
-        res = [(x, y) for x, y in res]
+        res = list(res)
         files = [os.path.join(x, y) for x, y in res]
         assert set(files) == expected
         assert set(res) == {(s3_random_target, "original.txt"), (s3_random_target, os.path.join("nested", "more.txt"))}
 
         fd_file = FlyteDirectory(path=f"{s3_random_target}/original.txt")
         res = fd_file.crawl()
-        files = [r for r in res]
+        files = list(res)
         assert len(files) == 1
 
 
@@ -312,7 +312,7 @@ def test_walk_local_copy_to_s3(source_folder):
     ctx = FlyteContextManager.current_context()
     local_fd = FlyteDirectory(path=source_folder)
     local_fd_crawl = local_fd.crawl()
-    local_fd_crawl = [x for x in local_fd_crawl]
+    local_fd_crawl = list(local_fd_crawl)
     with FlyteContextManager.with_context(ctx.with_file_access(provider)):
         fd = FlyteDirectory.new_remote()
         assert raw_output_path in fd.path

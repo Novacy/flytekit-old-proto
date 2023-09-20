@@ -101,20 +101,16 @@ class Gate(object):
         if self.input_type:
             msg = f"Execution stopped for gate {self.name}...\n"
             literal = parse_stdin_to_literal(ctx, self.input_type, msg)
-            p = Promise(var="o0", val=literal)
-            return p
-
+            return Promise(var="o0", val=literal)
         # Assume this is an approval operation since that's the only remaining option.
         msg = f"Pausing execution for {self.name}, literal value is:\n{typing.cast(Promise, self._upstream_item).val}\nContinue?"
-        proceed = click.confirm(msg, default=True)
-        if proceed:
-            # We need to return a promise here, and a promise is what should've been passed in by the call in approve()
-            # Only one element should be in this map. Rely on kwargs instead of the stored _upstream_item even though
-            # they should be the same to be cleaner
-            output_name = list(kwargs.keys())[0]
-            return kwargs[output_name]
-        else:
+        if not (proceed := click.confirm(msg, default=True)):
             raise FlyteDisapprovalException(f"User did not approve the transaction for gate node {self.name}")
+        # We need to return a promise here, and a promise is what should've been passed in by the call in approve()
+        # Only one element should be in this map. Rely on kwargs instead of the stored _upstream_item even though
+        # they should be the same to be cleaner
+        output_name = list(kwargs.keys())[0]
+        return kwargs[output_name]
 
     def local_execution_mode(self):
         return ExecutionState.Mode.LOCAL_TASK_EXECUTION

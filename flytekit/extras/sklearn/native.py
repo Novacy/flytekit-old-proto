@@ -36,7 +36,7 @@ class SklearnTypeTransformer(TypeTransformer[T]):
             )
         )
 
-        local_path = ctx.file_access.get_random_local_path() + ".joblib"
+        local_path = f"{ctx.file_access.get_random_local_path()}.joblib"
         pathlib.Path(local_path).parent.mkdir(parents=True, exist_ok=True)
 
         # save sklearn estimator to a file

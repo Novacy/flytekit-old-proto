@@ -82,10 +82,10 @@ class WorkflowMetadata(object):
     on_failure: WorkflowFailurePolicy
 
     def __post_init__(self):
-        if (
-            self.on_failure != WorkflowFailurePolicy.FAIL_IMMEDIATELY
-            and self.on_failure != WorkflowFailurePolicy.FAIL_AFTER_EXECUTABLE_NODES_COMPLETE
-        ):
+        if self.on_failure not in [
+            WorkflowFailurePolicy.FAIL_IMMEDIATELY,
+            WorkflowFailurePolicy.FAIL_AFTER_EXECUTABLE_NODES_COMPLETE,
+        ]:
             raise FlyteValidationException(f"Failure policy {self.on_failure} not acceptable")
 
     def to_flyte_model(self):
@@ -167,11 +167,7 @@ def get_promise_map(
     Basically this takes the place of propeller in resolving bindings, pulling in outputs from previously completed
     nodes and filling in the necessary inputs.
     """
-    entity_kwargs = {}
-    for b in bindings:
-        entity_kwargs[b.var] = get_promise(b.binding, outputs_cache)
-
-    return entity_kwargs
+    return {b.var: get_promise(b.binding, outputs_cache) for b in bindings}
 
 
 class WorkflowBase(object):
@@ -429,7 +425,7 @@ class ImperativeWorkflow(WorkflowBase):
         return self._inputs
 
     def __repr__(self):
-        return super().__repr__() + f"Nodes ({len(self.compilation_state.nodes)}): {self.compilation_state.nodes}"
+        return f"{super().__repr__()}Nodes ({len(self.compilation_state.nodes)}): {self.compilation_state.nodes}"
 
     def execute(self, **kwargs):
         """
@@ -504,7 +500,10 @@ class ImperativeWorkflow(WorkflowBase):
                 return (get_promise(self.output_bindings[0].binding, intermediate_node_outputs),)
             # Just a normal single element
             return get_promise(self.output_bindings[0].binding, intermediate_node_outputs)
-        return tuple([get_promise(b.binding, intermediate_node_outputs) for b in self.output_bindings])
+        return tuple(
+            get_promise(b.binding, intermediate_node_outputs)
+            for b in self.output_bindings
+        )
 
     def add_entity(self, entity: Union[PythonTask, LaunchPlan, WorkflowBase], **kwargs) -> Node:
         """
@@ -564,7 +563,7 @@ class ImperativeWorkflow(WorkflowBase):
             raise FlyteValidationException(f"Output {output_name} already exists in workflow {self.name}")
 
         if python_type is None:
-            if type(p) == list or type(p) == dict:
+            if type(p) in [list, dict]:
                 raise FlyteValidationException(
                     f"If specifying a list or dict of Promises, you must specify the python_type type for {output_name}"
                     f" starting with the container type (e.g. List[int]"
@@ -607,10 +606,7 @@ class ImperativeWorkflow(WorkflowBase):
         if len(self.compilation_state.nodes) == 0:
             return False
 
-        if len(self._unbound_inputs) > 0:
-            return False
-
-        return True
+        return len(self._unbound_inputs) <= 0
 
 
 class PythonFunctionWorkflow(WorkflowBase, ClassStorageTaskResolver):
@@ -666,10 +662,10 @@ class PythonFunctionWorkflow(WorkflowBase, ClassStorageTaskResolver):
         prefix = ctx.compilation_state.prefix if ctx.compilation_state is not None else ""
 
         with FlyteContextManager.with_context(
-            ctx.with_compilation_state(CompilationState(prefix=prefix, task_resolver=self))
-        ) as comp_ctx:
+                ctx.with_compilation_state(CompilationState(prefix=prefix, task_resolver=self))
+            ) as comp_ctx:
             # Construct the default input promise bindings, but then override with the provided inputs, if any
-            input_kwargs = construct_input_promises([k for k in self.interface.inputs.keys()])
+            input_kwargs = construct_input_promises(list(self.interface.inputs.keys()))
             input_kwargs.update(kwargs)
             workflow_outputs = exception_scopes.user_entry_point(self._workflow_function)(**input_kwargs)
             all_nodes.extend(comp_ctx.compilation_state.nodes)
@@ -733,9 +729,7 @@ class PythonFunctionWorkflow(WorkflowBase, ClassStorageTaskResolver):
         self._output_bindings = bindings
         if not output_names:
             return None
-        if len(output_names) == 1:
-            return bindings[0]
-        return tuple(bindings)
+        return bindings[0] if len(output_names) == 1 else tuple(bindings)
 
     def execute(self, **kwargs):
         """

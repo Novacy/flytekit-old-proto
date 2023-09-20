@@ -38,7 +38,7 @@ class BaseModelFlyteObjectStore:
     """
 
     def __init__(self) -> None:
-        self.literal_store: LiteralStore = dict()
+        self.literal_store: LiteralStore = {}
 
     def register_python_object(self, python_object: object) -> LiteralObjID:
         """Serialize to literal and return a unique identifier."""
@@ -67,8 +67,7 @@ def serialize_basemodel(basemodel: pydantic.BaseModel) -> literals.Literal:
             OBJECTS_KEY: store.to_literal(),  # flyte type-engine serialized types
         }
     )
-    literal = literals.Literal(map=basemodel_literalmap)  # type: ignore
-    return literal
+    return literals.Literal(map=basemodel_literalmap)
 
 
 def serialize_basemodel_to_literal(
@@ -96,8 +95,9 @@ def serialize_to_flyte_literal(python_obj: object) -> literals.Literal:
     python_type = type(python_obj)
     ctx = context_manager.FlyteContextManager().current_context()
     literal_type = type_engine.TypeEngine.to_literal_type(python_type)
-    literal_obj = type_engine.TypeEngine.to_literal(ctx, python_obj, python_type, literal_type)
-    return literal_obj
+    return type_engine.TypeEngine.to_literal(
+        ctx, python_obj, python_type, literal_type
+    )
 
 
 def make_literal_from_json(json: str) -> literals.Literal:

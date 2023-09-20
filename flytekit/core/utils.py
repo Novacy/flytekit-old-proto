@@ -28,12 +28,12 @@ def _dnsify(value: str) -> str:
     """
     res = ""
     MAX = 63
-    HASH_LEN = 10
     if len(value) >= MAX:
+        HASH_LEN = 10
         h = _sha224(value.encode("utf-8")).hexdigest()[:HASH_LEN]
-        value = "{}-{}".format(h, value[-(MAX - HASH_LEN - 1) :])
+        value = f"{h}-{value[-(MAX - HASH_LEN - 1):]}"
     for ch in value:
-        if ch == "_" or ch == "-" or ch == ".":
+        if ch in ["_", "-", "."]:
             # Convert '_' to '-' unless it's the first character, in which case we drop it.
             if res != "" and len(res) < 62:
                 res += "-"
@@ -50,7 +50,7 @@ def _dnsify(value: str) -> str:
             res += ch.lower()
 
     if len(res) > 0 and res[-1] == "-":
-        res = res[: len(res) - 1]
+        res = res[:-1]
 
     return res
 
@@ -72,52 +72,41 @@ def _get_container_definition(
     memory_limit: Optional[str] = None,
     environment: Optional[Dict[str, str]] = None,
 ) -> "task_models.Container":
-    storage_limit = storage_limit
-    storage_request = storage_request
-    ephemeral_storage_limit = ephemeral_storage_limit
-    ephemeral_storage_request = ephemeral_storage_request
-    cpu_limit = cpu_limit
-    cpu_request = cpu_request
-    gpu_limit = gpu_limit
-    gpu_request = gpu_request
-    memory_limit = memory_limit
-    memory_request = memory_request
-
     from flytekit.models import task as task_models
 
     # TODO: Use convert_resources_to_resource_model instead of manually fixing the resources.
     requests = []
-    if storage_request:
+    if storage_request := storage_request:
         requests.append(
             task_models.Resources.ResourceEntry(task_models.Resources.ResourceName.STORAGE, storage_request)
         )
-    if ephemeral_storage_request:
+    if ephemeral_storage_request := ephemeral_storage_request:
         requests.append(
             task_models.Resources.ResourceEntry(
                 task_models.Resources.ResourceName.EPHEMERAL_STORAGE, ephemeral_storage_request
             )
         )
-    if cpu_request:
+    if cpu_request := cpu_request:
         requests.append(task_models.Resources.ResourceEntry(task_models.Resources.ResourceName.CPU, cpu_request))
-    if gpu_request:
+    if gpu_request := gpu_request:
         requests.append(task_models.Resources.ResourceEntry(task_models.Resources.ResourceName.GPU, gpu_request))
-    if memory_request:
+    if memory_request := memory_request:
         requests.append(task_models.Resources.ResourceEntry(task_models.Resources.ResourceName.MEMORY, memory_request))
 
     limits = []
-    if storage_limit:
+    if storage_limit := storage_limit:
         limits.append(task_models.Resources.ResourceEntry(task_models.Resources.ResourceName.STORAGE, storage_limit))
-    if ephemeral_storage_limit:
+    if ephemeral_storage_limit := ephemeral_storage_limit:
         limits.append(
             task_models.Resources.ResourceEntry(
                 task_models.Resources.ResourceName.EPHEMERAL_STORAGE, ephemeral_storage_limit
             )
         )
-    if cpu_limit:
+    if cpu_limit := cpu_limit:
         limits.append(task_models.Resources.ResourceEntry(task_models.Resources.ResourceName.CPU, cpu_limit))
-    if gpu_limit:
+    if gpu_limit := gpu_limit:
         limits.append(task_models.Resources.ResourceEntry(task_models.Resources.ResourceName.GPU, gpu_limit))
-    if memory_limit:
+    if memory_limit := memory_limit:
         limits.append(task_models.Resources.ResourceEntry(task_models.Resources.ResourceName.MEMORY, memory_limit))
 
     if environment is None:
@@ -145,13 +134,11 @@ def _serialize_pod_spec(pod_template: "PodTemplate", primary_container: "task_mo
     if pod_template.pod_spec is None:
         return {}
     containers = cast(V1PodSpec, pod_template.pod_spec).containers
-    primary_exists = False
-
-    for container in containers:
-        if container.name == cast(PodTemplate, pod_template).primary_container_name:
-            primary_exists = True
-            break
-
+    primary_exists = any(
+        container.name
+        == cast(PodTemplate, pod_template).primary_container_name
+        for container in containers
+    )
     if not primary_exists:
         # insert a placeholder primary container if it is not defined in the pod spec.
         containers.append(V1Container(name=cast(PodTemplate, pod_template).primary_container_name))
@@ -171,7 +158,7 @@ def _serialize_pod_spec(pod_template: "PodTemplate", primary_container: "task_mo
             for resource in primary_container.resources.requests:
                 requests[_sanitize_resource_name(resource)] = resource.value
             resource_requirements = V1ResourceRequirements(limits=limits, requests=requests)
-            if len(limits) > 0 or len(requests) > 0:
+            if limits or requests:
                 # Important! Only copy over resource requirements if they are non-empty.
                 container.resources = resource_requirements
             if primary_container.env is not None:
@@ -237,7 +224,9 @@ class AutoDeletingTempDir(Directory):
         :param bool cleanup: Whether the directory should be cleaned up upon exit
         """
         self._tmp_dir = tmp_dir
-        self._working_dir_prefix = (working_dir_prefix + "_") if working_dir_prefix else ""
+        self._working_dir_prefix = (
+            f"{working_dir_prefix}_" if working_dir_prefix else ""
+        )
         self._cleanup = cleanup
         super(AutoDeletingTempDir, self).__init__(None)
 
@@ -261,7 +250,7 @@ class AutoDeletingTempDir(Directory):
         self._cleanup_dir()
 
     def __repr__(self):
-        return "Auto-Deleting Tmp Directory @ {}".format(self.name)
+        return f"Auto-Deleting Tmp Directory @ {self.name}"
 
     def __str__(self):
         return self.__repr__()
@@ -325,9 +314,5 @@ class timeit:
         )
 
         logger.info(
-            "{}. [Wall Time: {}s, Process Time: {}s]".format(
-                self._name,
-                end_wall_time - self._start_wall_time,
-                end_process_time - self._start_process_time,
-            )
+            f"{self._name}. [Wall Time: {end_wall_time - self._start_wall_time}s, Process Time: {end_process_time - self._start_process_time}s]"
         )

@@ -165,10 +165,7 @@ class PyTorchFunctionTask(PythonFunctionTask[PyTorch]):
         self, replica_config: Union[Master, Worker]
     ) -> pytorch_task.DistributedPyTorchTrainingReplicaSpec:
         resources = convert_resources_to_resource_model(requests=replica_config.requests, limits=replica_config.limits)
-        replicas = 1
-        # Master should always have 1 replica
-        if not isinstance(replica_config, Master):
-            replicas = replica_config.replicas
+        replicas = 1 if isinstance(replica_config, Master) else replica_config.replicas
         return pytorch_task.DistributedPyTorchTrainingReplicaSpec(
             replicas=replicas,
             image=replica_config.image,

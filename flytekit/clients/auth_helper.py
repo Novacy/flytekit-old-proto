@@ -65,9 +65,13 @@ def get_authenticator(cfg: PlatformConfig, cfg_store: ClientConfigStore) -> Auth
     elif cfg.ca_cert_file_path:
         verify = cfg.ca_cert_file_path
 
-    if cfg_auth == AuthType.STANDARD or cfg_auth == AuthType.PKCE:
+    if cfg_auth in [AuthType.STANDARD, AuthType.PKCE]:
         return PKCEAuthenticator(cfg.endpoint, cfg_store, verify=verify)
-    elif cfg_auth == AuthType.BASIC or cfg_auth == AuthType.CLIENT_CREDENTIALS or cfg_auth == AuthType.CLIENTSECRET:
+    elif cfg_auth in [
+        AuthType.BASIC,
+        AuthType.CLIENT_CREDENTIALS,
+        AuthType.CLIENTSECRET,
+    ]:
         return ClientCredentialsAuthenticator(
             endpoint=cfg.endpoint,
             client_id=cfg.client_id,
@@ -78,10 +82,8 @@ def get_authenticator(cfg: PlatformConfig, cfg_store: ClientConfigStore) -> Auth
             http_proxy_url=cfg.http_proxy_url,
             verify=verify,
         )
-    elif cfg_auth == AuthType.EXTERNAL_PROCESS or cfg_auth == AuthType.EXTERNALCOMMAND:
-        client_cfg = None
-        if cfg_store:
-            client_cfg = cfg_store.get_client_config()
+    elif cfg_auth in [AuthType.EXTERNAL_PROCESS, AuthType.EXTERNALCOMMAND]:
+        client_cfg = cfg_store.get_client_config() if cfg_store else None
         return CommandAuthenticator(
             command=cfg.command,
             header_key=client_cfg.header_key if client_cfg else None,
@@ -174,21 +176,20 @@ def get_channel(cfg: PlatformConfig, **kwargs) -> grpc.Channel:
         return grpc.insecure_channel(cfg.endpoint, **kwargs)
 
     credentials = None
-    if "credentials" not in kwargs:
-        if cfg.insecure_skip_verify:
-            credentials = bootstrap_creds_from_server(cfg.endpoint)
-        elif cfg.ca_cert_file_path:
-            credentials = grpc.ssl_channel_credentials(
-                crypto.dump_certificate(crypto.FILETYPE_PEM, load_cert(cfg.ca_cert_file_path))
-            )
-        else:
-            credentials = grpc.ssl_channel_credentials(
-                root_certificates=kwargs.get("root_certificates", None),
-                private_key=kwargs.get("private_key", None),
-                certificate_chain=kwargs.get("certificate_chain", None),
-            )
-    else:
+    if "credentials" in kwargs:
         credentials = kwargs["credentials"]
+    elif cfg.insecure_skip_verify:
+        credentials = bootstrap_creds_from_server(cfg.endpoint)
+    elif cfg.ca_cert_file_path:
+        credentials = grpc.ssl_channel_credentials(
+            crypto.dump_certificate(crypto.FILETYPE_PEM, load_cert(cfg.ca_cert_file_path))
+        )
+    else:
+        credentials = grpc.ssl_channel_credentials(
+            root_certificates=kwargs.get("root_certificates", None),
+            private_key=kwargs.get("private_key", None),
+            certificate_chain=kwargs.get("certificate_chain", None),
+        )
     return grpc.secure_channel(
         target=cfg.endpoint,
         credentials=credentials,

@@ -44,7 +44,7 @@ class WorkflowExecutionPhase(object):
         elif int_value == cls.TIMED_OUT:
             return "TIMED_OUT"
         else:
-            return "{}".format(int_value)
+            return f"{int_value}"
 
 
 class NodeExecutionPhase(object):
@@ -83,7 +83,7 @@ class NodeExecutionPhase(object):
         elif int_value == cls.TIMED_OUT:
             return "TIMED_OUT"
         else:
-            return "{}".format(int_value)
+            return f"{int_value}"
 
 
 class TaskExecutionPhase(object):
@@ -113,7 +113,7 @@ class TaskExecutionPhase(object):
         elif int_value == cls.QUEUED:
             return "QUEUED"
         else:
-            return "{}".format(int_value)
+            return f"{int_value}"
 
 
 class ExecutionError(_common.FlyteIdlEntity):

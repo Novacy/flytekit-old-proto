@@ -80,8 +80,8 @@ def test_diabetes():
     # Example file: https://raw.githubusercontent.com/jbrownlee/Datasets/master/pima-indians-diabetes.data.csv
     @task(cache_version="1.0", cache=True, limits=Resources(mem="200Mi"))
     def split_traintest_dataset(
-        dataset: FlyteFile[typing.TypeVar("csv")], seed: int, test_split_ratio: float
-    ) -> typing.Tuple[
+            dataset: FlyteFile[typing.TypeVar("csv")], seed: int, test_split_ratio: float
+        ) -> typing.Tuple[
         FlyteSchema[FEATURE_COLUMNS],
         FlyteSchema[FEATURE_COLUMNS],
         FlyteSchema[CLASSES_COLUMNS],
@@ -94,7 +94,7 @@ def test_diabetes():
 
         The data is returned as a schema, which gets converted to a parquet file in the back.
         """
-        column_names = [k for k in DATASET_COLUMNS.keys()]
+        column_names = list(DATASET_COLUMNS.keys())
         df = pd.read_csv(dataset, names=column_names)
 
         # Select all features
@@ -137,7 +137,7 @@ def test_diabetes():
         # make predictions for test data
         x_df = x.open().all()
         print(x_df)
-        col = [k for k in CLASSES_COLUMNS.keys()]
+        col = list(CLASSES_COLUMNS.keys())
         y_pred_df = pd.DataFrame(data=[{col[0]: [0, 1]}], columns=col, dtype="int64")
         y_pred_df.round(0)
         return y_pred_df

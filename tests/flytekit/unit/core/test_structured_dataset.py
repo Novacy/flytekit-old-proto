@@ -481,9 +481,13 @@ def test_protocol_detection():
 
 
 def test_register_renderers():
+
+
+
     class DummyRenderer:
         def to_html(self, input: str) -> str:
-            return "hello " + input
+            return f"hello {input}"
+
 
     renderers = StructuredDatasetTransformerEngine.Renderers
     StructuredDatasetTransformerEngine.register_renderer(str, DummyRenderer())

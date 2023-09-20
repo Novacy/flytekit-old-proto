@@ -180,9 +180,8 @@ def hash_directory(path):
         for file in files:
             with open(os.path.join(root, file), "rb") as f:
                 while True:
-                    # Read file in small chunks to avoid loading large files into memory all at once
-                    chunk = f.read(4096)
-                    if not chunk:
+                    if chunk := f.read(4096):
+                        hasher.update(chunk)
+                    else:
                         break
-                    hasher.update(chunk)
     return bytes(hasher.hexdigest(), "utf-8")

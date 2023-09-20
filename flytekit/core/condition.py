@@ -83,33 +83,33 @@ class ConditionalSection:
         In case this is not local workflow execution then, we should check if this is the last case.
         If so then return the promise, else return the condition
         """
-        if self._last_case:
-            # We have completed the conditional section, lets pop off the branch context
-            FlyteContextManager.pop_context()
-            ctx = FlyteContextManager.current_context()
-            # Question: This is commented out because we don't need it? Nodes created in the conditional
-            #   compilation state are captured in the to_case_block? Always?
-            #   Is this still true of nested conditionals? Is that why propeller compiler is complaining?
-            # branch_nodes = ctx.compilation_state.nodes
-            node, promises = to_branch_node(self._name, self)
-            # Verify branch_nodes == nodes in bn
-            bindings: typing.List[Binding] = []
-            upstream_nodes = set()
-            for p in promises:
-                if not p.is_ready:
-                    bindings.append(Binding(var=p.var, binding=BindingData(promise=p.ref)))
-                    upstream_nodes.add(p.ref.node)
+        if not self._last_case:
+            return self._condition
+        # We have completed the conditional section, lets pop off the branch context
+        FlyteContextManager.pop_context()
+        ctx = FlyteContextManager.current_context()
+        # Question: This is commented out because we don't need it? Nodes created in the conditional
+        #   compilation state are captured in the to_case_block? Always?
+        #   Is this still true of nested conditionals? Is that why propeller compiler is complaining?
+        # branch_nodes = ctx.compilation_state.nodes
+        node, promises = to_branch_node(self._name, self)
+        # Verify branch_nodes == nodes in bn
+        bindings: typing.List[Binding] = []
+        upstream_nodes = set()
+        for p in promises:
+            if not p.is_ready:
+                bindings.append(Binding(var=p.var, binding=BindingData(promise=p.ref)))
+                upstream_nodes.add(p.ref.node)
 
-            n = Node(
-                id=f"{ctx.compilation_state.prefix}n{len(ctx.compilation_state.nodes)}",  # type: ignore
-                metadata=_core_wf.NodeMetadata(self._name, timeout=datetime.timedelta(), retries=RetryStrategy(0)),
-                bindings=sorted(bindings, key=lambda b: b.var),
-                upstream_nodes=list(upstream_nodes),  # type: ignore
-                flyte_entity=node,
-            )
-            FlyteContextManager.current_context().compilation_state.add_node(n)  # type: ignore
-            return self._compute_outputs(n)
-        return self._condition
+        n = Node(
+            id=f"{ctx.compilation_state.prefix}n{len(ctx.compilation_state.nodes)}",  # type: ignore
+            metadata=_core_wf.NodeMetadata(self._name, timeout=datetime.timedelta(), retries=RetryStrategy(0)),
+            bindings=sorted(bindings, key=lambda b: b.var),
+            upstream_nodes=list(upstream_nodes),  # type: ignore
+            flyte_entity=node,
+        )
+        FlyteContextManager.current_context().compilation_state.add_node(n)  # type: ignore
+        return self._compute_outputs(n)
 
     def if_(self, expr: Union[ComparisonExpression, ConjunctionExpression]) -> Case:
         return self._condition._if(expr)
@@ -139,10 +139,7 @@ class ConditionalSection:
                     output_vars_set = curr_set
                 else:
                     output_vars_set = output_vars_set.intersection(curr_set)
-                    new_output_var = []
-                    for v in output_vars:
-                        if v in output_vars_set:
-                            new_output_var.append(v)
+                    new_output_var = [v for v in output_vars if v in output_vars_set]
                     output_vars = new_output_var
 
         return output_vars
@@ -175,10 +172,8 @@ class LocalExecutedConditionalSection(ConditionalSection):
         """
         added_case = super().start_branch(c, last_case)
         ctx = FlyteContextManager.current_context()
-        # This is a short-circuit for the case when the branch was taken
-        # We already have a candidate case selected
-        if self._selected_case is None:
-            if c.expr is None or c.expr.eval() or last_case:
+        if c.expr is None or c.expr.eval() or last_case:
+            if self._selected_case is None:
                 ctx.execution_state.take_branch()  # type: ignore
                 self._selected_case = added_case
         return added_case
@@ -262,7 +257,9 @@ class Case(object):
                     " input value or output of a previous node."
                     f" Received var {expr} in condition {cs.name}.{stmt}"
                 )
-            if not (isinstance(expr, ConjunctionExpression) or isinstance(expr, ComparisonExpression)):
+            if not (
+                isinstance(expr, (ConjunctionExpression, ComparisonExpression))
+            ):
                 raise AssertionError(
                     "Flytekit only supports Comparison (<,<=,>,>=,==,!=) or Conjunction (&/|) "
                     f"expressions, Received var {expr} in condition {cs.name}.{stmt}"
@@ -296,13 +293,19 @@ class Case(object):
         self, p: Union[Promise, Tuple[Promise]]
     ) -> Optional[Union[Condition, Promise, Tuple[Promise], VoidPromise]]:
         self._output_promise = p
-        if isinstance(p, Promise):
-            if not p.is_ready:
-                self._output_node = p.ref.node  # type: ignore
-        elif isinstance(p, VoidPromise):
-            if p.ref is not None:
-                self._output_node = p.ref.node
-        elif hasattr(p, "_fields"):
+        if (
+            isinstance(p, Promise)
+            and not p.is_ready
+            or not isinstance(p, Promise)
+            and isinstance(p, VoidPromise)
+            and p.ref is not None
+        ):
+            self._output_node = p.ref.node  # type: ignore
+        elif (
+            not isinstance(p, Promise)
+            and not isinstance(p, VoidPromise)
+            and hasattr(p, "_fields")
+        ):
             # This condition detects the NamedTuple case and iterates through the fields to find one that has a node
             # which should be the first one.
             for f in p._fields:  # type: ignore

@@ -55,7 +55,7 @@ class ArrayNodeMapTask(PythonTask):
             actual_task = python_function_task
 
         # TODO: add support for other Flyte entities
-        if not (isinstance(actual_task, PythonFunctionTask) or isinstance(actual_task, PythonInstanceTask)):
+        if not (isinstance(actual_task, (PythonFunctionTask, PythonInstanceTask))):
             raise ValueError("Only PythonFunctionTask and PythonInstanceTask are supported in map tasks.")
 
         n_outputs = len(actual_task.python_interface.outputs)
@@ -167,7 +167,7 @@ class ArrayNodeMapTask(PythonTask):
         TODO ADD bound variables to the resolver. Maybe we need a different resolver?
         """
         mt = ArrayNodeMapTaskResolver()
-        container_args = [
+        return [
             "pyflyte-map-execute",
             "--inputs",
             "{{.input}}",
@@ -185,11 +185,6 @@ class ArrayNodeMapTask(PythonTask):
             "--",
             *mt.loader_args(settings, self),
         ]
-
-        # TODO: add support for ContainerTask
-        # if self._cmd_prefix:
-        #     return self._cmd_prefix + container_args
-        return container_args
 
     def __call__(self, *args, **kwargs):
         """
@@ -265,9 +260,7 @@ class ArrayNodeMapTask(PythonTask):
         This is called during locally run executions. Unlike array task execution on the Flyte platform, _raw_execute
         produces the full output collection.
         """
-        outputs_expected = True
-        if not self.interface.outputs:
-            outputs_expected = False
+        outputs_expected = bool(self.interface.outputs)
         outputs = []
 
         any_input_key = (
@@ -284,8 +277,8 @@ class ArrayNodeMapTask(PythonTask):
                     single_instance_inputs[k] = kwargs[k][i]
                 else:
                     single_instance_inputs[k] = kwargs[k]
-            o = exception_scopes.user_entry_point(self.python_function_task.execute)(**single_instance_inputs)
             if outputs_expected:
+                o = exception_scopes.user_entry_point(self.python_function_task.execute)(**single_instance_inputs)
                 outputs.append(o)
 
         return outputs

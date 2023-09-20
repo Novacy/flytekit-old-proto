@@ -31,8 +31,8 @@ settings = flytekit.configuration.SerializationSettings(
 def test_wf1_with_fast_dynamic():
     @task
     def t1(a: int) -> str:
-        a = a + 2
-        return "fast-" + str(a)
+        a += 2
+        return f"fast-{a}"
 
     @workflow
     def subwf(a: int):
@@ -77,8 +77,8 @@ def test_wf1_with_fast_dynamic():
 def test_dynamic_local():
     @task
     def t1(a: int) -> str:
-        a = a + 2
-        return "fast-" + str(a)
+        a += 2
+        return f"fast-{a}"
 
     @dynamic
     def ranged_int_to_str(a: int) -> typing.List[str]:
@@ -94,8 +94,8 @@ def test_dynamic_local():
 def test_nested_dynamic_local():
     @task
     def t1(a: int) -> str:
-        a = a + 2
-        return "fast-" + str(a)
+        a += 2
+        return f"fast-{a}"
 
     @dynamic
     def ranged_int_to_str(a: int) -> typing.List[str]:
@@ -123,16 +123,13 @@ def test_nested_dynamic_local():
 def test_dynamic_local_use():
     @task
     def t1(a: int) -> str:
-        a = a + 2
-        return "fast-" + str(a)
+        a += 2
+        return f"fast-{a}"
 
     @dynamic
     def use_result(a: int) -> int:
         x = t1(a=a)
-        if len(x) > 6:
-            return 5
-        else:
-            return 0
+        return 5 if len(x) > 6 else 0
 
     with pytest.raises(TypeError):
         use_result(a=6)
@@ -226,8 +223,8 @@ def test_dynamic_return_dict():
 def test_nested_dynamic_locals():
     @task
     def t1(a: int) -> str:
-        a = a + 2
-        return "fast-" + str(a)
+        a += 2
+        return f"fast-{a}"
 
     @task
     def t2(b: str) -> str:
@@ -248,7 +245,7 @@ def test_nested_dynamic_locals():
             bb = t2(b=ss)
             bbb = t3(b=bb)
         else:
-            bb = t2(b=ss + "hi again")
+            bb = t2(b=f"{ss}hi again")
             bbb = "static"
         return [bb, bbb]
 

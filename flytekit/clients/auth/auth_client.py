@@ -44,9 +44,7 @@ def _generate_code_verifier():
 
 def _generate_state_parameter():
     state = _base64.urlsafe_b64encode(_os.urandom(_random_seed_length)).decode(_utf_8)
-    # Eliminate invalid characters.
-    code_verifier = _re.sub("[^a-zA-Z0-9-_.,]+", "", state)
-    return code_verifier
+    return _re.sub("[^a-zA-Z0-9-_.,]+", "", state)
 
 
 def _create_code_challenge(code_verifier):
@@ -155,7 +153,7 @@ class _SingletonPerEndpoint(type):
 
     _instances: typing.Dict[str, AuthorizationClient] = {}
 
-    def __call__(cls, *args, **kwargs):
+    def __call__(self, *args, **kwargs):
         endpoint = ""
         if args:
             endpoint = args[0]
@@ -163,9 +161,11 @@ class _SingletonPerEndpoint(type):
             endpoint = kwargs["auth_endpoint"]
         else:
             raise ValueError("parameter auth_endpoint is required")
-        if endpoint not in cls._instances:
-            cls._instances[endpoint] = super(_SingletonPerEndpoint, cls).__call__(*args, **kwargs)
-        return cls._instances[endpoint]
+        if endpoint not in self._instances:
+            self._instances[endpoint] = super(
+                _SingletonPerEndpoint, self
+            ).__call__(*args, **kwargs)
+        return self._instances[endpoint]
 
 
 class AuthorizationClient(metaclass=_SingletonPerEndpoint):
@@ -297,7 +297,7 @@ class AuthorizationClient(metaclass=_SingletonPerEndpoint):
             # TODO: handle expected (?) error cases:
             #  https://auth0.com/docs/flows/guides/device-auth/call-api-device-auth#token-responses
             raise Exception(
-                "Failed to request access token with response: [{}] {}".format(resp.status_code, resp.content)
+                f"Failed to request access token with response: [{resp.status_code}] {resp.content}"
             )
         return self._credentials_from_response(resp)
 

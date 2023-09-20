@@ -50,7 +50,7 @@ class InstanceTrackingMeta(type):
 
         module_components = [*file_relative.with_suffix("").parts]
         module_name = ".".join(module_components)
-        if len(module_components) == 0:
+        if not module_components:
             return None
 
         # make sure current directory is in the PYTHONPATH.
@@ -67,14 +67,12 @@ class InstanceTrackingMeta(type):
                 # if the remote_deploy command is invoked in the same module as where
                 # the app is defined, get the module from the file name
                 mod = InstanceTrackingMeta._get_module_from_main(frame.f_globals)
-                if mod is None:
-                    return None, None
-                return mod.__name__, mod.__file__
+                return (None, None) if mod is None else (mod.__name__, mod.__file__)
             frame = frame.f_back
         return None, None
 
-    def __call__(cls, *args, **kwargs):
-        o = super(InstanceTrackingMeta, cls).__call__(*args, **kwargs)
+    def __call__(self, *args, **kwargs):
+        o = super(InstanceTrackingMeta, self).__call__(*args, **kwargs)
         mod_name, mod_file = InstanceTrackingMeta._find_instance_module()
         o._instantiated_in = mod_name
         o._module_file = mod_file
@@ -110,9 +108,7 @@ class TrackedInstance(metaclass=InstanceTrackingMeta):
 
     @property
     def lhs(self):
-        if self._lhs is not None:
-            return self._lhs
-        return self.find_lhs()
+        return self._lhs if self._lhs is not None else self.find_lhs()
 
     def find_lhs(self) -> str:
         if self._lhs is not None:
@@ -228,8 +224,7 @@ def istestfunction(func) -> bool:
     Returns true if the function is defined in a test module. A test module has to have `test_` as the prefix.
     False in all other cases
     """
-    mod = inspect.getmodule(func)
-    if mod:
+    if mod := inspect.getmodule(func):
         mod_name = mod.__name__
         if "." in mod_name:
             mod_name = mod_name.split(".")[-1]

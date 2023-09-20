@@ -112,9 +112,7 @@ class CronSchedule(_schedule_models.Schedule):
         tokens = cron_expression.split()
         if len(tokens) != 6:
             raise ValueError(
-                "Cron expression is invalid.  A cron expression must have 6 fields.  Cron expressions are in the "
-                "format of: `minute hour day-of-month month day-of-week year`.  "
-                "Use `schedule` for 5 fields cron expression.  Received: `{}`".format(cron_expression)
+                f"Cron expression is invalid.  A cron expression must have 6 fields.  Cron expressions are in the format of: `minute hour day-of-month month day-of-week year`.  Use `schedule` for 5 fields cron expression.  Received: `{cron_expression}`"
             )
 
         if tokens[2] != "?" and tokens[4] != "?":
@@ -150,7 +148,9 @@ class CronSchedule(_schedule_models.Schedule):
     @staticmethod
     def _validate_offset(offset: str):
         if CronSchedule._OFFSET_PATTERN.fullmatch(offset) is None:
-            raise ValueError("Offset is invalid. It must be an ISO 8601 duration. Provided offset: {}".format(offset))
+            raise ValueError(
+                f"Offset is invalid. It must be an ISO 8601 duration. Provided offset: {offset}"
+            )
 
 
 class FixedRate(_schedule_models.Schedule):

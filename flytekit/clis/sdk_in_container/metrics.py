@@ -136,11 +136,11 @@ def aggregate_spans(spans):
 
     span = {"breakdown": breakdown}
 
-    if len(tasks) > 0:
+    if tasks:
         span["task_attempts"] = tasks
-    if len(nodes) > 0:
+    if nodes:
         span["nodes"] = nodes
-    if len(workflows) > 0:
+    if workflows:
         span["workflows"] = workflows
 
     return span
@@ -186,10 +186,7 @@ def print_span(span, indent, identifier):
     span_identifier = ""
 
     if id_type == "operation_id":
-        indent_str = ""
-        for i in range(indent):
-            indent_str += "  "
-
+        indent_str = "".join("  " for _ in range(indent))
         print(
             "{:25s}{:25s}{:25s} {:7.2f}s    {:s}{:s}".format(
                 span.operation_id,
@@ -201,14 +198,13 @@ def print_span(span, indent, identifier):
             )
         )
 
-        span_identifier = identifier + "/" + span.operation_id
-    else:
-        if id_type == "workflow_id":
-            span_identifier = "workflow/" + span.workflow_id.name
-        elif id_type == "node_id":
-            span_identifier = "node/" + span.node_id.node_id
-        elif id_type == "task_id":
-            span_identifier = "task/" + str(span.task_id.retry_attempt)
+        span_identifier = f"{identifier}/{span.operation_id}"
+    elif id_type == "workflow_id":
+        span_identifier = f"workflow/{span.workflow_id.name}"
+    elif id_type == "node_id":
+        span_identifier = f"node/{span.node_id.node_id}"
+    elif id_type == "task_id":
+        span_identifier = f"task/{str(span.task_id.retry_attempt)}"
 
     for under_span in span.spans:
         print_span(under_span, indent + 1, span_identifier)

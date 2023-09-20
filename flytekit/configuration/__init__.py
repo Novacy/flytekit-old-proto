@@ -248,10 +248,7 @@ class ImageConfig(DataClassJsonMixin):
         if self.images:
             lookup_images.extend(self.images)
 
-        for i in lookup_images:
-            if i.name == name:
-                return i
-        return None
+        return next((i for i in lookup_images if i.name == name), None)
 
     @staticmethod
     def validate_image(_: typing.Any, param: str, values: tuple) -> ImageConfig:
@@ -433,8 +430,9 @@ class PlatformConfig(object):
             client_credentials_secret,
         )
 
-        client_credentials_secret_env_var = _internal.Credentials.CLIENT_CREDENTIALS_SECRET_ENV_VAR.read(config_file)
-        if client_credentials_secret_env_var:
+        if client_credentials_secret_env_var := _internal.Credentials.CLIENT_CREDENTIALS_SECRET_ENV_VAR.read(
+            config_file
+        ):
             client_credentials_secret = os.getenv(client_credentials_secret_env_var)
             if client_credentials_secret:
                 is_client_secret = True

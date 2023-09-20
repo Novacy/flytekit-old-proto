@@ -19,7 +19,7 @@ serialization_settings = flytekit.configuration.SerializationSettings(
 
 @task
 def t1(a: str) -> str:
-    return a + " world"
+    return f"{a} world"
 
 
 wb = ImperativeWorkflow(name="my.workflow")

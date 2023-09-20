@@ -35,7 +35,7 @@ def test_imperative():
     # docs_tasks_start
     @task
     def t1(a: str) -> str:
-        return a + " world"
+        return f"{a} world"
 
     @task
     def t2():
@@ -216,7 +216,7 @@ def test_imperative_tuples():
 
     @task
     def t3(a: int, b: str) -> typing.Tuple[int, str]:
-        return a + 2, "world" + b
+        return a + 2, f"world{b}"
 
     wb = ImperativeWorkflow(name="my.workflow.a")
     t1_node = wb.add_entity(t1)
@@ -261,7 +261,7 @@ def test_call_normal():
 def test_imperative_call_from_normal():
     @task
     def t1(a: str) -> str:
-        return a + " world"
+        return f"{a} world"
 
     wb = ImperativeWorkflow(name="my.workflow")
     wb.add_workflow_input("in1", str)
@@ -297,7 +297,7 @@ def test_codecov():
 
     @task
     def t1(a: str) -> str:
-        return a + " world"
+        return f"{a} world"
 
     wb = ImperativeWorkflow(name="my.workflow")
     wb.add_workflow_input("in1", str)

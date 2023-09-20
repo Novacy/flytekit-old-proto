@@ -69,13 +69,9 @@ class TaggableStats(_stats_client.ScopeableStatsProxy):
         if not self._scope_prefix or self._scope_prefix == "":
             prefix = name
         else:
-            prefix = self._scope_prefix + "." + name
+            prefix = f"{self._scope_prefix}.{name}"
 
-        if self._full_prefix:
-            full_prefix = self._full_prefix + "." + prefix
-        else:
-            full_prefix = prefix
-
+        full_prefix = f"{self._full_prefix}.{prefix}" if self._full_prefix else prefix
         tags = dict(self._tags) if copy_tags else None
         return TaggableStats(self._client, full_prefix, prefix=prefix, tags=tags)
 

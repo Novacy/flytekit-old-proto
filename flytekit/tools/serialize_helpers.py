@@ -27,9 +27,7 @@ def _determine_text_chars(length):
     :param int length:
     :rtype: int
     """
-    if length == 0:
-        return 0
-    return math.ceil(math.log(length, 10))
+    return 0 if length == 0 else math.ceil(math.log(length, 10))
 
 
 def _should_register_with_admin(entity) -> bool:
@@ -53,17 +51,15 @@ def get_registrable_entities(
     # TODO: Clean up the copy() - it's here because we call get_default_launch_plan, which may create a LaunchPlan
     #  object, which gets added to the FlyteEntities.entities list, which we're iterating over.
     for entity in flyte_context.FlyteEntities.entities.copy():
-        if isinstance(entity, PythonTask) or isinstance(entity, WorkflowBase) or isinstance(entity, LaunchPlan):
+        if isinstance(entity, (PythonTask, WorkflowBase, LaunchPlan)):
             get_serializable(new_api_serializable_entities, ctx.serialization_settings, entity, options=options)
 
-            if isinstance(entity, WorkflowBase):
-                lp = LaunchPlan.get_default_launch_plan(ctx, entity)
-                get_serializable(new_api_serializable_entities, ctx.serialization_settings, lp, options)
+        if isinstance(entity, WorkflowBase):
+            lp = LaunchPlan.get_default_launch_plan(ctx, entity)
+            get_serializable(new_api_serializable_entities, ctx.serialization_settings, lp, options)
 
     new_api_model_values = list(new_api_serializable_entities.values())
-    entities_to_be_serialized = list(filter(_should_register_with_admin, new_api_model_values))
-
-    return entities_to_be_serialized
+    return list(filter(_should_register_with_admin, new_api_model_values))
 
 
 def persist_registrable_entities(entities: typing.List[FlyteControlPlaneEntity], folder: str):
@@ -84,13 +80,13 @@ def persist_registrable_entities(entities: typing.List[FlyteControlPlaneEntity],
         fname_index = str(i).zfill(zero_padded_length)
         if isinstance(entity, TaskSpec):
             name = entity.template.id.name
-            fname = "{}_{}_1.pb".format(fname_index, entity.template.id.name)
+            fname = f"{fname_index}_{entity.template.id.name}_1.pb"
         elif isinstance(entity, WorkflowSpec):
             name = entity.template.id.name
-            fname = "{}_{}_2.pb".format(fname_index, entity.template.id.name)
+            fname = f"{fname_index}_{entity.template.id.name}_2.pb"
         elif isinstance(entity, _launch_plan_models.LaunchPlan):
             name = entity.id.name
-            fname = "{}_{}_3.pb".format(fname_index, entity.id.name)
+            fname = f"{fname_index}_{entity.id.name}_3.pb"
         else:
             click.secho(f"Entity is incorrect formatted {entity} - type {type(entity)}", fg="red")
             sys.exit(-1)

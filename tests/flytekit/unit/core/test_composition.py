@@ -11,8 +11,8 @@ from flytekit.models import literals as _literal_models
 def test_wf1_with_subwf():
     @task
     def t1(a: int) -> NamedTuple("OutputsBC", t1_int_output=int, c=str):
-        a = a + 2
-        return a, "world-" + str(a)
+        a += 2
+        return a, f"world-{a}"
 
     @task
     def t2(a: str, b: str) -> str:
@@ -39,7 +39,7 @@ def test_single_named_output_subwf():
 
     @task
     def t1(a: int) -> nt:
-        a = a + 2
+        a += 2
         return nt(a)
 
     @task
@@ -69,8 +69,8 @@ def test_single_named_output_subwf():
 def test_lp_default_handling():
     @task
     def t1(a: int) -> NamedTuple("OutputsBC", t1_int_output=int, c=str):
-        a = a + 2
-        return a, "world-" + str(a)
+        a += 2
+        return a, f"world-{a}"
 
     @workflow
     def my_wf(a: int, b: int) -> (str, str, int, int):
@@ -131,8 +131,8 @@ def test_lp_default_handling():
 def test_wf1_with_lp_node():
     @task
     def t1(a: int) -> NamedTuple("OutputsBC", t1_int_output=int, c=str):
-        a = a + 2
-        return a, "world-" + str(a)
+        a += 2
+        return a, f"world-{a}"
 
     @workflow
     def my_subwf(a: int) -> (str, str):

@@ -13,25 +13,14 @@ class FlyteTypeException(FlyteUserException, TypeError):
 
     @staticmethod
     def _is_a_container(value):
-        return isinstance(value, list) or isinstance(value, tuple) or isinstance(value, set)
+        return isinstance(value, (list, tuple, set))
 
     @classmethod
     def _create_verbose_message(cls, received_type, expected_type, received_value=None, additional_msg=None):
         if received_value is not None:
-            return "Type error!  Received: {} with value: {}, Expected{}: {}. {}".format(
-                received_type,
-                received_value,
-                " one of" if FlyteTypeException._is_a_container(expected_type) else "",
-                expected_type,
-                additional_msg or "",
-            )
+            return f'Type error!  Received: {received_type} with value: {received_value}, Expected{" one of" if FlyteTypeException._is_a_container(expected_type) else ""}: {expected_type}. {additional_msg or ""}'
         else:
-            return "Type error!  Received: {}, Expected{}: {}. {}".format(
-                received_type,
-                " one of" if FlyteTypeException._is_a_container(expected_type) else "",
-                expected_type,
-                additional_msg or "",
-            )
+            return f'Type error!  Received: {received_type}, Expected{" one of" if FlyteTypeException._is_a_container(expected_type) else ""}: {expected_type}. {additional_msg or ""}'
 
     def __init__(self, received_type, expected_type, additional_msg=None, received_value=None):
         super(FlyteTypeException, self).__init__(
@@ -50,7 +39,7 @@ class FlyteValueException(FlyteUserException, ValueError):
 
     @classmethod
     def _create_verbose_message(cls, received_value, error_message):
-        return "Value error!  Received: {}. {}".format(received_value, error_message)
+        return f"Value error!  Received: {received_value}. {error_message}"
 
     def __init__(self, received_value, error_message):
         super(FlyteValueException, self).__init__(self._create_verbose_message(received_value, error_message))
