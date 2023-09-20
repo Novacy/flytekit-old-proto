@@ -75,7 +75,7 @@ def test_get_registrable_entities():
     for e in entities:
         if isinstance(e, RemoteEntity):
             assert False, "found unexpected remote entity"
-        if isinstance(e, WorkflowSpec) or isinstance(e, TaskSpec) or isinstance(e, LaunchPlan):
+        if isinstance(e, (WorkflowSpec, TaskSpec, LaunchPlan)):
             continue
         assert False, f"found unknown entity {type(e)}"
 

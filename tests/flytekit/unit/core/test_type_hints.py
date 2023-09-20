@@ -309,8 +309,8 @@ def test_promise_return():
 
     @task
     def t1(a: int) -> typing.NamedTuple("OutputsBC", t1_int_output=int, c=str):
-        a = a + 2
-        return a, "world-" + str(a)
+        a += 2
+        return a, f"world-{a}"
 
     @workflow
     def mimic_sub_wf(a: int) -> (str, str):
@@ -496,7 +496,7 @@ def test_structured_dataset_in_dataclass():
 def test_wf1_with_map():
     @task
     def t1(a: int) -> int:
-        a = a + 2
+        a += 2
         return a
 
     @task
@@ -564,8 +564,8 @@ def test_wf1_with_constant_return():
 def test_wf1_with_dynamic():
     @task
     def t1(a: int) -> str:
-        a = a + 2
-        return "world-" + str(a)
+        a += 2
+        return f"world-{a}"
 
     @task
     def t2(a: str, b: str) -> str:
@@ -586,7 +586,7 @@ def test_wf1_with_dynamic():
 
     v = 5
     x = my_wf(a=v, b="hello ")
-    assert x == ("hello hello ", ["world-" + str(i) for i in range(2, v + 2)])
+    assert x == ("hello hello ", [f"world-{str(i)}" for i in range(2, v + 2)])
 
     with context_manager.FlyteContextManager.with_context(
         context_manager.FlyteContextManager.current_context().with_serialization_settings(
@@ -611,8 +611,8 @@ def test_wf1_with_dynamic():
 def test_wf1_with_fast_dynamic():
     @task
     def t1(a: int) -> str:
-        a = a + 2
-        return "fast-" + str(a)
+        a += 2
+        return f"fast-{a}"
 
     @dynamic
     def my_subwf(a: int) -> typing.List[str]:
@@ -666,8 +666,8 @@ def test_wf1_with_fast_dynamic():
 def test_list_output():
     @task
     def t1(a: int) -> str:
-        a = a + 2
-        return "world-" + str(a)
+        a += 2
+        return f"world-{a}"
 
     @workflow
     def lister() -> typing.List[str]:
@@ -876,8 +876,8 @@ def test_wf1_df():
 def test_lp_serialize():
     @task
     def t1(a: int) -> typing.NamedTuple("OutputsBC", t1_int_output=int, c=str):
-        a = a + 2
-        return a, "world-" + str(a)
+        a += 2
+        return a, f"world-{a}"
 
     @task
     def t2(a: str, b: str) -> str:
@@ -924,7 +924,7 @@ def test_wf_tuple_fails():
 
         @task
         def t1(a: tuple) -> (int, str):
-            return a[0] + 2, str(a) + "-HELLO"
+            return a[0] + 2, f"{a}-HELLO"
 
 
 def test_wf_typed_schema():
@@ -1204,8 +1204,8 @@ def test_flyte_schema_dataclass():
 def test_environment():
     @task(environment={"FOO": "foofoo", "BAZ": "baz"})
     def t1(a: int) -> str:
-        a = a + 2
-        return "now it's " + str(a)
+        a += 2
+        return f"now it's {a}"
 
     @workflow
     def my_wf(a: int) -> str:
@@ -1228,17 +1228,17 @@ def test_environment():
 
 def test_resources():
     @task(
-        requests=Resources(cpu="1", ephemeral_storage="500Mi"),
-        limits=Resources(cpu="2", mem="400M", ephemeral_storage="501Mi"),
-    )
+            requests=Resources(cpu="1", ephemeral_storage="500Mi"),
+            limits=Resources(cpu="2", mem="400M", ephemeral_storage="501Mi"),
+        )
     def t1(a: int) -> str:
-        a = a + 2
-        return "now it's " + str(a)
+        a += 2
+        return f"now it's {a}"
 
     @task(requests=Resources(cpu="3"))
     def t2(a: int) -> str:
-        a = a + 200
-        return "now it's " + str(a)
+        a += 200
+        return f"now it's {a}"
 
     @workflow
     def my_wf(a: int) -> str:
@@ -1336,8 +1336,8 @@ def test_secrets():
 def test_nested_dynamic():
     @task
     def t1(a: int) -> str:
-        a = a + 2
-        return "world-" + str(a)
+        a += 2
+        return f"world-{a}"
 
     @task
     def t2(a: str, b: str) -> str:
@@ -1358,7 +1358,7 @@ def test_nested_dynamic():
 
     v = 5
     x = my_wf(a=v, b="hello ")
-    assert x == ("hello hello ", ["world-" + str(i) for i in range(2, v + 2)])
+    assert x == ("hello hello ", [f"world-{str(i)}" for i in range(2, v + 2)])
 
     settings = flytekit.configuration.SerializationSettings(
         project="test_proj",
@@ -1400,7 +1400,7 @@ def test_conditional_asymmetric_return():
         Return:
             float: The label for the output will be automatically assigned and type will be deduced from the annotation
         """
-        return n * n
+        return n**2
 
     @task
     def double(n: int) -> int:
@@ -1419,9 +1419,7 @@ def test_conditional_asymmetric_return():
         Mimic some condition checking to see if something ran correctly
         """
         r = random.Random(seed)
-        if r.random() < 0.5:
-            return True
-        return False
+        return r.random() < 0.5
 
     @task
     def sum_diff(a: int, b: int) -> typing.Tuple[int, int]:
@@ -1468,7 +1466,7 @@ def test_guess_dict():
 
     output_lm = t2.dispatch_execute(ctx, lm)
     str_value = output_lm.literals["o0"].scalar.primitive.string_value
-    assert str_value == "K: k2 V: 2, K: k1 V: v1" or str_value == "K: k1 V: v1, K: k2 V: 2"
+    assert str_value in ["K: k2 V: 2, K: k1 V: v1", "K: k1 V: v1, K: k2 V: 2"]
 
 
 def test_guess_dict2():
@@ -1662,14 +1660,16 @@ def test_union_type_implicit_wrapping():
 
 
 def test_union_type_ambiguity_checking():
+
+
+
     class MyInt:
         def __init__(self, x: int):
             self.val = x
 
         def __eq__(self, other):
-            if not isinstance(other, MyInt):
-                return False
-            return other.val == self.val
+            return False if not isinstance(other, MyInt) else other.val == self.val
+
 
     TypeEngine.register(
         SimpleTransformer(
@@ -1685,9 +1685,7 @@ def test_union_type_ambiguity_checking():
 
     @task
     def t1(a: typing.Union[int, MyInt]) -> int:
-        if isinstance(a, MyInt):
-            return a.val
-        return a
+        return a.val if isinstance(a, MyInt) else a
 
     @workflow
     def wf(a: int) -> int:
@@ -1702,14 +1700,16 @@ def test_union_type_ambiguity_checking():
 
 
 def test_union_type_ambiguity_resolution():
+
+
+
     class MyInt:
         def __init__(self, x: int):
             self.val = x
 
         def __eq__(self, other):
-            if not isinstance(other, MyInt):
-                return False
-            return other.val == self.val
+            return False if not isinstance(other, MyInt) else other.val == self.val
+
 
     TypeEngine.register(
         SimpleTransformer(
@@ -1725,15 +1725,11 @@ def test_union_type_ambiguity_resolution():
 
     @task
     def t1(a: typing.Union[int, MyInt]) -> str:
-        if isinstance(a, MyInt):
-            return f"MyInt {str(a.val)}"
-        return str(a)
+        return f"MyInt {str(a.val)}" if isinstance(a, MyInt) else str(a)
 
     @task
     def t2(a: int) -> typing.Union[int, MyInt]:
-        if a < 0:
-            return MyInt(a)
-        return a
+        return MyInt(a) if a < 0 else a
 
     @workflow
     def wf(a: int) -> str:

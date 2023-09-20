@@ -33,8 +33,7 @@ class AuthUnaryInterceptor(grpc.UnaryUnaryClientInterceptor, grpc.UnaryStreamCli
         Returns new ClientCallDetails with metadata added.
         """
         metadata = None
-        auth_metadata = self._authenticator.fetch_grpc_call_auth_metadata()
-        if auth_metadata:
+        if auth_metadata := self._authenticator.fetch_grpc_call_auth_metadata():
             metadata = []
             if client_call_details.metadata:
                 metadata.extend(list(client_call_details.metadata))
@@ -59,8 +58,7 @@ class AuthUnaryInterceptor(grpc.UnaryUnaryClientInterceptor, grpc.UnaryStreamCli
         """
         updated_call_details = self._call_details_with_auth_metadata(client_call_details)
         fut: grpc.Future = continuation(updated_call_details, request)
-        e = fut.exception()
-        if e:
+        if e := fut.exception():
             if e.code() == grpc.StatusCode.UNAUTHENTICATED:
                 self._authenticator.refresh_credentials()
                 updated_call_details = self._call_details_with_auth_metadata(client_call_details)

@@ -151,9 +151,7 @@ def register(
             "Missing argument 'PACKAGE_OR_MODULE...', at least one PACKAGE_OR_MODULE is required but multiple can be passed",
         )
 
-    # Use extra images in the config file if that file exists
-    config_file = ctx.obj.get(constants.CTX_CONFIG_FILE)
-    if config_file:
+    if config_file := ctx.obj.get(constants.CTX_CONFIG_FILE):
         image_config = patch_image_config(config_file, image_config)
 
     click.secho(

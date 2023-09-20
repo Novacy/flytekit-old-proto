@@ -48,7 +48,7 @@ def main(ctx, pkgs: typing.List[str], config: str, verbose: bool):
     """
     Entrypoint for all the user commands.
     """
-    ctx.obj = dict()
+    ctx.obj = {}
 
     # Handle package management - get from the command line, the environment variables, then the config file.
     pkgs = pkgs or LocalSDK.WORKFLOW_PACKAGES.read() or []

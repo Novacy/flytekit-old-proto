@@ -16,9 +16,10 @@ def include_in_flyte_types(t: type) -> bool:
     if t is None:
         return False
     object_module = t.__module__
-    if any(object_module.startswith(module) for module in MODULES_TO_EXCLUDE_FROM_FLYTE_TYPES):
-        return False
-    return True
+    return not any(
+        object_module.startswith(module)
+        for module in MODULES_TO_EXCLUDE_FROM_FLYTE_TYPES
+    )
 
 
 type_engine.TypeEngine.lazy_import_transformers()  # loads all transformers

@@ -365,7 +365,7 @@ def to_click_option(
     description_extra = ""
     if literal_var.type.simple == SimpleType.STRUCT:
         if default_val:
-            if type(default_val) == dict or type(default_val) == list:
+            if type(default_val) in [dict, list]:
                 default_val = json.dumps(default_val)
             else:
                 default_val = cast(DataClassJsonMixin, default_val).to_json()
@@ -692,13 +692,12 @@ class WorkflowCommand(click.RichGroup):
         h = f"{click.style(entity_type, bold=True)} ({run_level_params.computed_params.module}.{entity_name})"
         if loaded_entity.__doc__:
             h = h + click.style(f"{loaded_entity.__doc__}", dim=True)
-        cmd = click.RichCommand(
+        return click.RichCommand(
             name=entity_name,
             params=params,
             callback=run_command(ctx, loaded_entity),
             help=h,
         )
-        return cmd
 
     def get_command(self, ctx, exe_entity):
         """

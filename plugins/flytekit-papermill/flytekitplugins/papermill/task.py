@@ -273,9 +273,7 @@ class NotebookTask(PythonInstanceTask[T]):
         outputs = self.extract_outputs(self.output_notebook_path)
         self.render_nb_html(self.output_notebook_path, self.rendered_output_path)
 
-        m = {}
-        if outputs:
-            m = outputs.literals
+        m = outputs.literals if outputs else {}
         output_list = []
 
         for k, type_v in self.python_interface.outputs.items():
@@ -289,9 +287,7 @@ class NotebookTask(PythonInstanceTask[T]):
             else:
                 raise TypeError(f"Expected output {k} of type {type_v} not found in the notebook outputs")
 
-        if len(output_list) == 1:
-            return output_list[0]
-        return tuple(output_list)
+        return output_list[0] if len(output_list) == 1 else tuple(output_list)
 
     def post_execute(self, user_params: ExecutionParameters, rval: Any) -> Any:
         if self._render_deck:
@@ -361,8 +357,7 @@ def load_python_val_from_file(path: str, dtype: T) -> T:
     proto = utils.load_proto_from_file(_pb2_Literal, path)
     lit = Literal.from_flyte_idl(proto)
     ctx = FlyteContext.current_context()
-    python_value = TypeEngine.to_python_value(ctx, lit, dtype)
-    return python_value
+    return TypeEngine.to_python_value(ctx, lit, dtype)
 
 
 def load_flytefile(path: str) -> T:

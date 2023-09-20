@@ -8,14 +8,15 @@ from flytekit.configuration import Image, ImageConfig, SerializationSettings
 @pytest.fixture
 def serialization_settings() -> SerializationSettings:
     default_img = Image(name="default", fqn="test", tag="tag")
-    settings = SerializationSettings(
+    return SerializationSettings(
         project="project",
         domain="domain",
         version="version",
         env={"FOO": "baz"},
-        image_config=ImageConfig(default_image=default_img, images=[default_img]),
+        image_config=ImageConfig(
+            default_image=default_img, images=[default_img]
+        ),
     )
-    return settings
 
 
 def test_pytorch_task(serialization_settings: SerializationSettings):

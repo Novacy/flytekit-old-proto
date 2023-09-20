@@ -53,66 +53,35 @@ def wf_with_multioutput_error1(a: int, b: int) -> Tuple[str, int]:
 @given(st.booleans() | st.integers() | st.text(ascii_lowercase))
 @settings(deadline=timedelta(seconds=2))
 def test_task_input_error(incorrect_input):
-    with pytest.raises(
-        TypeError,
-        match=(
-            r"Failed to convert inputs of task '{}':\n"
-            r"  Failed argument 'a': Expected value of type \<class 'float'\> but got .+ of type .+"
-        ).format(task_correct_output.name),
-    ):
+    with pytest.raises(TypeError, match=f"Failed to convert inputs of task '{task_correct_output.name}':\n  Failed argument 'a': Expected value of type \<class 'float'\> but got .+ of type .+"):
         task_correct_output(a=incorrect_input)
 
 
 @given(st.floats())
 @settings(deadline=timedelta(seconds=2))
 def test_task_output_error(correct_input):
-    with pytest.raises(
-        TypeError,
-        match=(
-            r"Failed to convert outputs of task '{}' at position 0:\n"
-            r"  Expected value of type \<class 'int'\> but got .+ of type .+"
-        ).format(task_incorrect_output.name),
-    ):
+    with pytest.raises(TypeError, match=f"Failed to convert outputs of task '{task_incorrect_output.name}' at position 0:\n  Expected value of type \<class 'int'\> but got .+ of type .+"):
         task_incorrect_output(a=correct_input)
 
 
 @given(st.integers())
 @settings(deadline=timedelta(seconds=2))
 def test_workflow_with_task_error(correct_input):
-    with pytest.raises(
-        TypeError,
-        match=(
-            r"Encountered error while executing workflow '{}':\n"
-            r"  Error encountered while executing 'wf_with_task_error':\n"
-            r"  Failed to convert outputs of task '.+' at position 0:\n"
-            r"  Expected value of type \<class 'int'\> but got .+ of type .+"
-        ).format(wf_with_task_error.name),
-    ):
+    with pytest.raises(TypeError, match=f"Encountered error while executing workflow '{wf_with_task_error.name}':\n  Error encountered while executing 'wf_with_task_error':\n  Failed to convert outputs of task '.+' at position 0:\n  Expected value of type \<class 'int'\> but got .+ of type .+"):
         wf_with_task_error(a=correct_input)
 
 
 @given(st.booleans() | st.floats() | st.text(ascii_lowercase))
 @settings(deadline=timedelta(seconds=2))
 def test_workflow_with_input_error(incorrect_input):
-    with pytest.raises(
-        TypeError,
-        match=(r"Encountered error while executing workflow '{}':\n" r"  Failed argument").format(
-            wf_with_output_error.name
-        ),
-    ):
+    with pytest.raises(TypeError, match=f"Encountered error while executing workflow '{wf_with_output_error.name}':\n  Failed argument"):
         wf_with_output_error(a=incorrect_input)
 
 
 @given(st.integers())
 @settings(deadline=timedelta(seconds=2))
 def test_workflow_with_output_error(correct_input):
-    with pytest.raises(
-        TypeError,
-        match=(
-            r"Encountered error while executing workflow '{}':\n"
-            r"  Failed to convert output in position 0 of value .+, expected type \<class 'int'\>"
-        ).format(wf_with_output_error.name),
-    ):
+    with pytest.raises(TypeError, match=f"Encountered error while executing workflow '{wf_with_output_error.name}':\n  Failed to convert output in position 0 of value .+, expected type \<class 'int'\>"):
         wf_with_output_error(a=correct_input)
 
 
@@ -126,11 +95,5 @@ def test_workflow_with_output_error(correct_input):
 @given(st.integers())
 @settings(deadline=timedelta(seconds=2))
 def test_workflow_with_multioutput_error(workflow, position, correct_input):
-    with pytest.raises(
-        TypeError,
-        match=(
-            r"Encountered error while executing workflow '{}':\n  "
-            r"Failed to convert output in position {} of value .+, expected type \<class 'int'\>"
-        ).format(workflow.name, position),
-    ):
+    with pytest.raises(TypeError, match=f"Encountered error while executing workflow '{workflow.name}':\n  Failed to convert output in position {position} of value .+, expected type \<class 'int'\>"):
         workflow(a=correct_input, b=correct_input)

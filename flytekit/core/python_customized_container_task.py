@@ -141,7 +141,7 @@ class PythonCustomizedContainerTask(ExecutableTemplateShimTask, PythonTask[TC]):
         return self._container_image
 
     def get_command(self, settings: SerializationSettings) -> List[str]:
-        container_args = [
+        return [
             "pyflyte-execute",
             "--inputs",
             "{{.input}}",
@@ -154,8 +154,6 @@ class PythonCustomizedContainerTask(ExecutableTemplateShimTask, PythonTask[TC]):
             "--",
             *self.task_resolver.loader_args(settings, self),
         ]
-
-        return container_args
 
     def get_container(self, settings: SerializationSettings) -> _task_model.Container:
         env = {**settings.env, **self.environment} if self.environment else settings.env

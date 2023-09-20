@@ -697,10 +697,7 @@ class FlyteWorkflow(_hash_mixin.HashOnReferenceMixin, RemoteEntity, WorkflowSpec
         if converted_sub_workflows:
             subworkflow_list = [v for _, v in converted_sub_workflows.items()]
 
-        task_list = []
-        if tasks:
-            task_list = [t for _, t in tasks.items()]
-
+        task_list = [t for _, t in tasks.items()] if tasks else []
         # No inputs/outputs specified, see the constructor for more information on the overrides.
         wf = cls(
             id=base_model.id,
@@ -774,10 +771,12 @@ class FlyteLaunchPlan(hash_mixin.HashOnReferenceMixin, RemoteEntity, _launch_pla
 
     @classmethod
     def promote_from_model(cls, id: id_models.Identifier, model: _launch_plan_models.LaunchPlanSpec) -> FlyteLaunchPlan:
-        lp = cls(
+        return cls(
             id=id,
             workflow_id=model.workflow_id,
-            default_inputs=_interface_models.ParameterMap(model.default_inputs.parameters),
+            default_inputs=_interface_models.ParameterMap(
+                model.default_inputs.parameters
+            ),
             fixed_inputs=model.fixed_inputs,
             entity_metadata=model.entity_metadata,
             labels=model.labels,
@@ -787,7 +786,6 @@ class FlyteLaunchPlan(hash_mixin.HashOnReferenceMixin, RemoteEntity, _launch_pla
             max_parallelism=model.max_parallelism,
             security_context=model.security_context,
         )
-        return lp
 
     @property
     def id(self) -> id_models.Identifier:

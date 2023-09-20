@@ -64,8 +64,8 @@ def get_basic_authorization_header(client_id: str, client_secret: str) -> str:
     :rtype: str
     """
     encoded = urllib.parse.quote_plus(client_secret)
-    concatenated = "{}:{}".format(client_id, encoded)
-    return "Basic {}".format(base64.b64encode(concatenated.encode(utf_8)).decode(utf_8))
+    concatenated = f"{client_id}:{encoded}"
+    return f"Basic {base64.b64encode(concatenated.encode(utf_8)).decode(utf_8)}"
 
 
 def get_token(
@@ -109,10 +109,14 @@ def get_token(
         j = response.json()
         if "error" in j:
             err = j["error"]
-            if err == error_auth_pending or err == error_slow_down:
+            if err in [error_auth_pending, error_slow_down]:
                 raise AuthenticationPending(f"Token not yet available, try again in some time {err}")
-        logging.error("Status Code ({}) received from IDP: {}".format(response.status_code, response.text))
-        raise AuthenticationError("Status Code ({}) received from IDP: {}".format(response.status_code, response.text))
+        logging.error(
+            f"Status Code ({response.status_code}) received from IDP: {response.text}"
+        )
+        raise AuthenticationError(
+            f"Status Code ({response.status_code}) received from IDP: {response.text}"
+        )
 
     j = response.json()
     return j["access_token"], j["expires_in"]

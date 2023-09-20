@@ -301,25 +301,9 @@ class DataclassTransformer(TypeTransformer[object]):
         if type(v) == expected_type:
             return
 
-        # @dataclass
-        # class Foo(DataClassJsonMixin):
-        #     a: int = 0
-        #
-        # @task
-        # def t1(a: Foo):
-        #     ...
-        #
-        # In above example, the type of v may not equal to the expected_type in some cases
-        # For example,
-        # 1. The input of t1 is another dataclass (bar), then we should raise an error
-        # 2. when using flyte remote to execute the above task, the expected_type is guess_python_type (FooSchema) by default.
-        # However, FooSchema is created by flytekit and it's not equal to the user-defined dataclass (Foo).
-        # Therefore, we should iterate all attributes in the dataclass and check the type of value in dataclass matches the expected_type.
-
-        expected_fields_dict = {}
-        for f in dataclasses.fields(expected_type):
-            expected_fields_dict[f.name] = f.type
-
+        expected_fields_dict = {
+            f.name: f.type for f in dataclasses.fields(expected_type)
+        }
         for f in dataclasses.fields(type(v)):  # type: ignore
             original_type = f.type
             expected_type = expected_fields_dict[f.name]
@@ -615,10 +599,7 @@ class DataclassTransformer(TypeTransformer[object]):
                 self._fix_val_int(cast(type, ktype), k): self._fix_val_int(cast(type, vtype), v) for k, v in val.items()
             }
 
-        if dataclasses.is_dataclass(t):
-            return self._fix_dataclass_int(t, val)  # type: ignore
-
-        return val
+        return self._fix_dataclass_int(t, val) if dataclasses.is_dataclass(t) else val
 
     def _fix_dataclass_int(self, dc_type: Type[DataClassJsonMixin], dc: DataClassJsonMixin) -> DataClassJsonMixin:
         """
@@ -796,11 +777,9 @@ class TypeEngine(typing.Generic[T]):
         # this makes sure that if it's a list/dict of annotated types, we hit the unwrapping code in step 2
         # see test_list_of_annotated in test_structured_dataset.py
         if (
-            (not hasattr(python_type, "__origin__"))
-            or (
-                hasattr(python_type, "__origin__")
-                and (python_type.__origin__ is not list and python_type.__origin__ is not dict)
-            )
+            not hasattr(python_type, "__origin__")
+            or python_type.__origin__ is not list
+            and python_type.__origin__ is not dict
         ) and python_type in cls._REGISTRY:
             return cls._REGISTRY[python_type]
 
@@ -1039,10 +1018,10 @@ class TypeEngine(typing.Generic[T]):
         """
         Transforms a dictionary of flyte-specific ``Variable`` objects to a dictionary of regular python values.
         """
-        python_types = {}
-        for k, v in flyte_variable_dict.items():
-            python_types[k] = cls.guess_python_type(v.type)
-        return python_types
+        return {
+            k: cls.guess_python_type(v.type)
+            for k, v in flyte_variable_dict.items()
+        }
 
     @classmethod
     def guess_python_type(cls, flyte_type: LiteralType) -> type:
@@ -1146,7 +1125,7 @@ class ListTransformer(TypeTransformer[T]):
             from flytekit.types.pickle import FlytePickle
 
             batch_list = [TypeEngine.to_python_value(ctx, batch, FlytePickle) for batch in lits]
-            if len(batch_list) > 0 and type(batch_list[0]) is list:
+            if batch_list and type(batch_list[0]) is list:
                 # Make it have backward compatibility. The upstream task may use old version of Flytekit that
                 # won't merge the elements in the list. Therefore, we should check if the batch_list[0] is the list first.
                 return [item for batch in batch_list for item in batch]
@@ -1192,13 +1171,15 @@ def _are_types_castable(upstream: LiteralType, downstream: LiteralType) -> bool:
         if downstream.collection_type is None:
             return False
 
-        return _are_types_castable(upstream.collection_type, downstream.collection_type)
+        else:
+            return _are_types_castable(upstream.collection_type, downstream.collection_type)
 
     if upstream.map_value_type is not None:
         if downstream.map_value_type is None:
             return False
 
-        return _are_types_castable(upstream.map_value_type, downstream.map_value_type)
+        else:
+            return _are_types_castable(upstream.map_value_type, downstream.map_value_type)
 
     # TODO: Structured dataset type matching requires that downstream structured datasets
     # are a strict sub-set of the upstream structured dataset.
@@ -1234,12 +1215,10 @@ def _are_types_castable(upstream: LiteralType, downstream: LiteralType) -> bool:
         return True
 
     if upstream.union_type is not None:
-        # for each upstream variant, there must be a compatible type downstream
-        for v in upstream.union_type.variants:
-            if not _are_types_castable(v, downstream):
-                return False
-        return True
-
+        return all(
+            _are_types_castable(v, downstream)
+            for v in upstream.union_type.variants
+        )
     if downstream.union_type is not None:
         # there must be a compatible downstream type
         for v in downstream.union_type.variants:
@@ -1247,14 +1226,10 @@ def _are_types_castable(upstream: LiteralType, downstream: LiteralType) -> bool:
                 return True
 
     if upstream.enum_type is not None:
-        # enums are castable to string
         if downstream.simple == SimpleType.STRING:
             return True
 
-    if _type_essence(upstream) == _type_essence(downstream):
-        return True
-
-    return False
+    return _type_essence(upstream) == _type_essence(downstream)
 
 
 class UnionTransformer(TypeTransformer[T]):
@@ -1318,8 +1293,8 @@ class UnionTransformer(TypeTransformer[T]):
     def to_python_value(self, ctx: FlyteContext, lv: Literal, expected_python_type: Type[T]) -> Optional[typing.Any]:
         expected_python_type = get_underlying_type(expected_python_type)
 
-        union_tag = None
         union_type = None
+        union_tag = None
         if lv.scalar is not None and lv.scalar.union is not None:
             union_type = lv.scalar.union.stored_type
             if union_type.structure is not None:
@@ -1346,19 +1321,16 @@ class UnionTransformer(TypeTransformer[T]):
                     res_tag = trans.name
                     if found_res:
                         raise TypeError(
-                            "Ambiguous choice of variant for union type. "
-                            + f"Both {res_tag} and {trans.name} transformers match"
+                            f"Ambiguous choice of variant for union type. Both {res_tag} and {trans.name} transformers match"
                         )
-                    found_res = True
                 else:
                     res = trans.to_python_value(ctx, lv, v)
                     if found_res:
                         raise TypeError(
-                            "Ambiguous choice of variant for union type. "
-                            + f"Both {res_tag} and {trans.name} transformers match"
+                            f"Ambiguous choice of variant for union type. Both {res_tag} and {trans.name} transformers match"
                         )
                     res_tag = trans.name
-                    found_res = True
+                found_res = True
             except (TypeTransformerFailedError, AttributeError) as e:
                 logger.debug(f"Failed to convert from {lv} to {v}", e)
 
@@ -1412,8 +1384,7 @@ class DictTransformer(TypeTransformer[dict]):
         """
         Transforms a native python dictionary to a flyte-specific ``LiteralType``
         """
-        tp = self.get_dict_types(t)
-        if tp:
+        if tp := self.get_dict_types(t):
             if tp[0] == str:
                 try:
                     sub_type = TypeEngine.to_literal_type(cast(type, tp[1]))
@@ -1451,11 +1422,10 @@ class DictTransformer(TypeTransformer[dict]):
                 )
             if tp[0] != str:
                 raise TypeError("TypeMismatch. Destination dictionary does not accept 'str' key")
-            py_map = {}
-            for k, v in lv.map.literals.items():
-                py_map[k] = TypeEngine.to_python_value(ctx, v, cast(Type, tp[1]))
-            return py_map
-
+            return {
+                k: TypeEngine.to_python_value(ctx, v, cast(Type, tp[1]))
+                for k, v in lv.map.literals.items()
+            }
         # for empty generic we have to explicitly test for lv.scalar.generic is not None as empty dict
         # evaluates to false
         if lv and lv.scalar and lv.scalar.generic is not None:
@@ -1594,7 +1564,8 @@ def generate_attribute_list_from_dataclass_json_mixin(schema: dict, schema_name:
         # Handle list
         if property_type == "array":
             attribute_list.append((property_key, typing.List[_get_element_type(property_val["items"])]))  # type: ignore
-        # Handle dataclass and dict
+        elif property_type == "enum":
+            attribute_list.append([property_key, str])  # type: ignore
         elif property_type == "object":
             if property_val.get("anyOf"):
                 sub_schemea = property_val["anyOf"][0]
@@ -1611,9 +1582,6 @@ def generate_attribute_list_from_dataclass_json_mixin(schema: dict, schema_name:
                 attribute_list.append(
                     (property_key, convert_mashumaro_json_schema_to_python_class(property_val, sub_schemea_name))
                 )
-        elif property_type == "enum":
-            attribute_list.append([property_key, str])  # type: ignore
-        # Handle int, float, bool or str
         else:
             attribute_list.append([property_key, _get_element_type(property_val)])  # type: ignore
     return attribute_list
@@ -1623,10 +1591,8 @@ def generate_attribute_list_from_dataclass_json(schema: dict, schema_name: typin
     attribute_list = []
     for property_key, property_val in schema[schema_name]["properties"].items():
         property_type = property_val["type"]
-        # Handle list
-        if property_val["type"] == "array":
+        if property_type == "array":
             attribute_list.append((property_key, List[_get_element_type(property_val["items"])]))  # type: ignore[misc,index]
-        # Handle dataclass and dict
         elif property_type == "object":
             if property_val.get("$ref"):
                 name = property_val["$ref"].split("/")[-1]
@@ -1637,7 +1603,6 @@ def generate_attribute_list_from_dataclass_json(schema: dict, schema_name: typin
                 )
             else:
                 attribute_list.append((property_key, Dict[str, _get_element_type(property_val)]))  # type: ignore[misc,index]
-        # Handle int, float, bool or str
         else:
             attribute_list.append([property_key, _get_element_type(property_val)])  # type: ignore
     return attribute_list
@@ -1673,17 +1638,14 @@ def _get_element_type(element_property: typing.Dict[str, str]) -> Type:
         # Element type of Optional[int] is [integer, None]
         return typing.Optional[_get_element_type({"type": element_type[0]})]  # type: ignore
 
-    if element_type == "string":
-        return str
+    if element_type == "boolean":
+        return bool
     elif element_type == "integer":
         return int
-    elif element_type == "boolean":
-        return bool
     elif element_type == "number":
-        if element_format == "integer":
-            return int
-        else:
-            return float
+        return int if element_format == "integer" else float
+    elif element_type == "string":
+        return str
     return str
 
 
@@ -1693,13 +1655,12 @@ def dataclass_from_dict(cls: type, src: typing.Dict[str, typing.Any]) -> typing.
     """
     field_types_lookup = {field.name: field.type for field in dataclasses.fields(cls)}
 
-    constructor_inputs = {}
-    for field_name, value in src.items():
-        if dataclasses.is_dataclass(field_types_lookup[field_name]):
-            constructor_inputs[field_name] = dataclass_from_dict(field_types_lookup[field_name], value)
-        else:
-            constructor_inputs[field_name] = value
-
+    constructor_inputs = {
+        field_name: dataclass_from_dict(field_types_lookup[field_name], value)
+        if dataclasses.is_dataclass(field_types_lookup[field_name])
+        else value
+        for field_name, value in src.items()
+    }
     return cls(**constructor_inputs)
 
 
@@ -1857,11 +1818,11 @@ class LiteralsResolver(collections.UserDict):
         strs = []
         for key, literal in self._literals.items():
             if key in self._native_values:
-                strs.append(f"{key}: " + str(self._native_values[key]) + "\n")
+                strs.append(f"{key}: {str(self._native_values[key])}" + "\n")
             else:
                 lit_txt = str(self._literals[key])
                 lit_txt = textwrap.indent(lit_txt, " " * (len(key) + 2))
-                strs.append(f"{key}: \n" + lit_txt)
+                strs.append(f"{key}: \n{lit_txt}")
 
         return header + "{\n" + textwrap.indent("".join(strs), " " * 2) + "\n}"
 
@@ -1900,7 +1861,7 @@ class LiteralsResolver(collections.UserDict):
 
         return self.get(key)
 
-    def get(self, attr: str, as_type: Optional[typing.Type] = None) -> typing.Any:  # type: ignore
+    def get(self, attr: str, as_type: Optional[typing.Type] = None) -> typing.Any:    # type: ignore
         """
         This will get the ``attr`` value from the Literal map, and invoke the TypeEngine to convert it into a Python
         native value. A Python type can optionally be supplied. If successful, the native value will be cached and
@@ -1918,15 +1879,14 @@ class LiteralsResolver(collections.UserDict):
         if as_type is None:
             if attr in self._type_hints:
                 as_type = self._type_hints[attr]
+            elif self.variable_map and attr in self.variable_map:
+                try:
+                    as_type = TypeEngine.guess_python_type(self.variable_map[attr].type)
+                except ValueError as e:
+                    logger.error(f"Could not guess a type for Variable {self.variable_map[attr]}")
+                    raise e
             else:
-                if self.variable_map and attr in self.variable_map:
-                    try:
-                        as_type = TypeEngine.guess_python_type(self.variable_map[attr].type)
-                    except ValueError as e:
-                        logger.error(f"Could not guess a type for Variable {self.variable_map[attr]}")
-                        raise e
-                else:
-                    ValueError("as_type argument not supplied and Variable map not specified in LiteralsResolver")
+                ValueError("as_type argument not supplied and Variable map not specified in LiteralsResolver")
         val = TypeEngine.to_python_value(
             self._ctx or FlyteContext.current_context(), self._literals[attr], cast(Type, as_type)
         )
@@ -1943,6 +1903,4 @@ def is_annotated(t: Type) -> bool:
 
 def get_underlying_type(t: Type) -> Type:
     """Return the underlying type for annotated types or the type itself"""
-    if is_annotated(t):
-        return get_args(t)[0]
-    return t
+    return get_args(t)[0] if is_annotated(t) else t

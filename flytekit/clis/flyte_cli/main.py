@@ -74,7 +74,7 @@ def _welcome_message():
         "################################################################################################################################\n",
         bold=True,
     )
-    _click.secho("Welcome to Flyte CLI! Version: {}\n".format(_tt(__version__)), bold=True)
+    _click.secho(f"Welcome to Flyte CLI! Version: {_tt(__version__)}\n", bold=True)
 
 
 def _get_user_filepath_home():
@@ -89,7 +89,7 @@ def _get_config_file_path():
 def _detect_default_config_file():
     config_file = _get_config_file_path()
     if _get_user_filepath_home() and _os.path.exists(config_file):
-        _click.secho("Using default config file at {}".format(_tt(config_file)), fg="blue")
+        _click.secho(f"Using default config file at {_tt(config_file)}", fg="blue")
         return config_file
     else:
         _click.secho(
@@ -125,7 +125,7 @@ def _fetch_and_stringify_literal_map(path, verbose=False):
             )
             return _get_io_string(literal_map, verbose=verbose)
         except Exception:
-            return "Failed to pull data from {}. Do you have permissions?".format(path)
+            return f"Failed to pull data from {path}. Do you have permissions?"
 
 
 def _prefix_lines(prefix, txt):
@@ -134,7 +134,7 @@ def _prefix_lines(prefix, txt):
     :param Text txt:
     :rtype: Text
     """
-    return "\n{}".format(prefix).join(txt.splitlines())
+    return f"\n{prefix}".join(txt.splitlines())
 
 
 def _secho_workflow_status(status, nl=True):
@@ -256,18 +256,19 @@ def _update_one_launch_plan(client: _friendly_client.SynchronousFlyteClient, urn
     else:
         state = _launch_plan.LaunchPlanState.INACTIVE
     client.update_launch_plan(cli_identifiers.Identifier.from_python_std(urn), state)
-    _click.echo("Successfully updated {}".format(_tt(urn)))
+    _click.echo(f"Successfully updated {_tt(urn)}")
 
 
 def _render_schedule_expr(lp):
     sched_expr = "NONE"
-    if lp.spec.entity_metadata.schedule and lp.spec.entity_metadata.schedule.cron_expression:
-        sched_expr = "cron({cron_expr})".format(cron_expr=_tt(lp.spec.entity_metadata.schedule.cron_expression))
-    elif lp.spec.entity_metadata.schedule and lp.spec.entity_metadata.schedule.rate:
-        sched_expr = "rate({unit}={value})".format(
-            unit=_tt(_Schedule.FixedRateUnit.enum_to_string(lp.spec.entity_metadata.schedule.rate.unit)),
-            value=_tt(lp.spec.entity_metadata.schedule.rate.value),
-        )
+    if lp.spec.entity_metadata.schedule:
+        if lp.spec.entity_metadata.schedule.cron_expression:
+            sched_expr = "cron({cron_expr})".format(cron_expr=_tt(lp.spec.entity_metadata.schedule.cron_expression))
+        elif lp.spec.entity_metadata.schedule.rate:
+            sched_expr = "rate({unit}={value})".format(
+                unit=_tt(_Schedule.FixedRateUnit.enum_to_string(lp.spec.entity_metadata.schedule.rate.unit)),
+                value=_tt(lp.spec.entity_metadata.schedule.rate.value),
+            )
     return "{:30}".format(sched_expr)
 
 
@@ -647,7 +648,7 @@ def list_task_names(project, domain, host, insecure, token, limit, show_all, sor
     _welcome_message()
     client = _get_client(host, insecure)
 
-    _click.echo("Task Names Found in {}:{}\n".format(_tt(project), _tt(domain)))
+    _click.echo(f"Task Names Found in {_tt(project)}:{_tt(domain)}\n")
     while True:
         task_ids, next_token = client.list_task_ids_paginated(
             project,
@@ -657,11 +658,11 @@ def list_task_names(project, domain, host, insecure, token, limit, show_all, sor
             sort_by=_admin_common.Sort.from_python_std(sort_by) if sort_by else None,
         )
         for t in task_ids:
-            _click.echo("\t{}".format(_tt(t.name)))
+            _click.echo(f"\t{_tt(t.name)}")
 
         if show_all is not True:
             if next_token:
-                _click.echo("Received next token: {}\n".format(next_token))
+                _click.echo(f"Received next token: {next_token}\n")
             break
         if not next_token:
             break
@@ -689,7 +690,9 @@ def list_task_versions(project, domain, name, host, insecure, token, limit, show
     _welcome_message()
     client = _get_client(host, insecure)
 
-    _click.echo("Task Versions Found for {}:{}:{}\n".format(_tt(project), _tt(domain), _tt(name or "*")))
+    _click.echo(
+        f'Task Versions Found for {_tt(project)}:{_tt(domain)}:{_tt(name or "*")}\n'
+    )
     _click.echo("{:50} {:40}".format("Version", "Urn"))
     while True:
         task_list, next_token = client.list_tasks_paginated(
@@ -709,7 +712,7 @@ def list_task_versions(project, domain, name, host, insecure, token, limit, show
 
         if show_all is not True:
             if next_token:
-                _click.echo("Received next token: {}\n".format(next_token))
+                _click.echo(f"Received next token: {next_token}\n")
             break
         if not next_token:
             break
@@ -756,7 +759,7 @@ def list_workflow_names(project, domain, host, insecure, token, limit, show_all,
     _welcome_message()
     client = _get_client(host, insecure)
 
-    _click.echo("Workflow Names Found in {}:{}\n".format(_tt(project), _tt(domain)))
+    _click.echo(f"Workflow Names Found in {_tt(project)}:{_tt(domain)}\n")
     while True:
         wf_ids, next_token = client.list_workflow_ids_paginated(
             project,
@@ -766,11 +769,11 @@ def list_workflow_names(project, domain, host, insecure, token, limit, show_all,
             sort_by=_admin_common.Sort.from_python_std(sort_by) if sort_by else None,
         )
         for i in wf_ids:
-            _click.echo("\t{}".format(_tt(i.name)))
+            _click.echo(f"\t{_tt(i.name)}")
 
         if show_all is not True:
             if next_token:
-                _click.echo("Received next token: {}\n".format(next_token))
+                _click.echo(f"Received next token: {next_token}\n")
             break
         if not next_token:
             break
@@ -798,7 +801,9 @@ def list_workflow_versions(project, domain, name, host, insecure, token, limit, 
     _welcome_message()
     client = _get_client(host, insecure)
 
-    _click.echo("Workflow Versions Found for {}:{}:{}\n".format(_tt(project), _tt(domain), _tt(name or "*")))
+    _click.echo(
+        f'Workflow Versions Found for {_tt(project)}:{_tt(domain)}:{_tt(name or "*")}\n'
+    )
     _click.echo("{:50} {:40}".format("Version", "Urn"))
     while True:
         wf_list, next_token = client.list_workflows_paginated(
@@ -818,7 +823,7 @@ def list_workflow_versions(project, domain, name, host, insecure, token, limit, 
 
         if show_all is not True:
             if next_token:
-                _click.echo("Received next token: {}\n".format(next_token))
+                _click.echo(f"Received next token: {next_token}\n")
             break
         if not next_token:
             break
@@ -864,7 +869,7 @@ def list_launch_plan_names(project, domain, host, insecure, token, limit, show_a
     """
     _welcome_message()
     client = _get_client(host, insecure)
-    _click.echo("Launch Plan Names Found in {}:{}\n".format(_tt(project), _tt(domain)))
+    _click.echo(f"Launch Plan Names Found in {_tt(project)}:{_tt(domain)}\n")
     while True:
         wf_ids, next_token = client.list_launch_plan_ids_paginated(
             project,
@@ -874,11 +879,11 @@ def list_launch_plan_names(project, domain, host, insecure, token, limit, show_a
             sort_by=_admin_common.Sort.from_python_std(sort_by) if sort_by else None,
         )
         for i in wf_ids:
-            _click.echo("\t{}".format(_tt(i.name)))
+            _click.echo(f"\t{_tt(i.name)}")
 
         if show_all is not True:
             if next_token:
-                _click.echo("Received next token: {}\n".format(next_token))
+                _click.echo(f"Received next token: {next_token}\n")
             break
         if not next_token:
             break
@@ -903,7 +908,7 @@ def list_active_launch_plans(project, domain, host, insecure, token, limit, show
     """
     if not urns_only:
         _welcome_message()
-        _click.echo("Active Launch Plan Found in {}:{}\n".format(_tt(project), _tt(domain)))
+        _click.echo(f"Active Launch Plan Found in {_tt(project)}:{_tt(domain)}\n")
         _click.echo("{:30} {:50} {:80}".format("Schedule", "Version", "Urn"))
 
     client = _get_client(host, insecure)
@@ -930,7 +935,7 @@ def list_active_launch_plans(project, domain, host, insecure, token, limit, show
 
         if show_all is not True:
             if next_token and not urns_only:
-                _click.echo("Received next token: {}\n".format(next_token))
+                _click.echo(f"Received next token: {next_token}\n")
             break
         if not next_token:
             break
@@ -971,7 +976,9 @@ def list_launch_plan_versions(
     """
     if not urns_only:
         _welcome_message()
-        _click.echo("Launch Plan Versions Found for {}:{}:{}\n".format(_tt(project), _tt(domain), _tt(name)))
+        _click.echo(
+            f"Launch Plan Versions Found for {_tt(project)}:{_tt(domain)}:{_tt(name)}\n"
+        )
         _click.echo("{:50} {:80} {:30} {:15}".format("Version", "Urn", "Schedule", "Schedule State"))
 
     client = _get_client(host, insecure)
@@ -1007,7 +1014,7 @@ def list_launch_plan_versions(
 
         if show_all is not True:
             if next_token and not urns_only:
-                _click.echo("Received next token: {}\n".format(next_token))
+                _click.echo(f"Received next token: {next_token}\n")
             break
         if not next_token:
             break
@@ -1046,7 +1053,9 @@ def get_active_launch_plan(project, domain, name, host, insecure):
     client = _get_client(host, insecure)
 
     lp = client.get_active_launch_plan(_common_models.NamedEntityIdentifier(project, domain, name))
-    _click.echo("Active Launch Plan for {}:{}:{}\n".format(_tt(project), _tt(domain), _tt(name)))
+    _click.echo(
+        f"Active Launch Plan for {_tt(project)}:{_tt(domain)}:{_tt(name)}\n"
+    )
     _click.echo(lp)
     _click.echo("")
 
@@ -1062,15 +1071,13 @@ def update_launch_plan(state, host, insecure, urn=None):
 
     if urn is None:
         try:
-            # Examine whether the input is from the named pipe
-            if _stat.S_ISFIFO(_os.fstat(0).st_mode):
-                for line in _sys.stdin.readlines():
-                    _update_one_launch_plan(client, urn=line.rstrip(), state=state)
-            else:
+            if not _stat.S_ISFIFO(_os.fstat(0).st_mode):
                 # If the commandline parameter urn is not supplied, and neither
                 # the input comes from a pipe, it means the user is not using
                 # this command approperiately
                 raise _click.UsageError('Missing option "-u" / "--urn" or missing pipe inputs')
+            for line in _sys.stdin.readlines():
+                _update_one_launch_plan(client, urn=line.rstrip(), state=state)
         except KeyboardInterrupt:
             _sys.stdout.flush()
     else:
@@ -1112,13 +1119,13 @@ def recover_execution(urn, name, host, insecure):
     _welcome_message()
     client = _get_client(host, insecure)
 
-    _click.echo("Recovering execution {}\n".format(_tt(urn)))
+    _click.echo(f"Recovering execution {_tt(urn)}\n")
 
     original_workflow_execution_identifier = cli_identifiers.WorkflowExecutionIdentifier.from_python_std(urn)
 
     execution_identifier_resp = client.recover_execution(id=original_workflow_execution_identifier, name=name)
     execution_identifier = cli_identifiers.WorkflowExecutionIdentifier.promote_from_model(execution_identifier_resp)
-    _click.secho("Launched execution: {}".format(execution_identifier), fg="blue")
+    _click.secho(f"Launched execution: {execution_identifier}", fg="blue")
     _click.echo("")
 
 
@@ -1156,15 +1163,13 @@ def terminate_execution(host, insecure, cause, urn=None):
     # for them one-by-one
     if urn is None:
         try:
-            # Examine whether the input is from FIFO (named pipe)
-            if _stat.S_ISFIFO(_os.fstat(0).st_mode):
-                for line in _sys.stdin.readlines():
-                    _terminate_one_execution(client, line.rstrip(), cause)
-            else:
+            if not _stat.S_ISFIFO(_os.fstat(0).st_mode):
                 # If the commandline parameter urn is not supplied, and neither
                 # the input is from a pipe, it means the user is not using
                 # this command appropriately
                 raise _click.UsageError('Missing option "-u" / "--urn" or missing pipe inputs.')
+            for line in _sys.stdin.readlines():
+                _terminate_one_execution(client, line.rstrip(), cause)
         except KeyboardInterrupt:
             _sys.stdout.flush()
     else:
@@ -1195,7 +1200,7 @@ def list_executions(project, domain, host, insecure, token, limit, show_all, fil
     """
     if not urns_only:
         _welcome_message()
-        _click.echo("Executions Found in {}:{}\n".format(_tt(project), _tt(domain)))
+        _click.echo(f"Executions Found in {_tt(project)}:{_tt(domain)}\n")
         _click.echo("{:100} {:40} {:10}".format("Urn", "Name", "Status"))
 
     client = _get_client(host, insecure)
@@ -1214,7 +1219,7 @@ def list_executions(project, domain, host, insecure, token, limit, show_all, fil
 
         if show_all is not True:
             if next_token and not urns_only:
-                _click.echo("Received next token: {}\n".format(next_token))
+                _click.echo(f"Received next token: {next_token}\n")
             break
         if not next_token:
             break
@@ -1302,27 +1307,24 @@ def _render_workflow_execution(wf_execution, uri_to_message_map, show_io, verbos
 
 
 def _render_error(error):
-    out = "Error:\n"
-    out += "\tCode: {}\n".format(error.code)
+    out = "Error:\n" + f"\tCode: {error.code}\n"
     out += "\tMessage:\n"
     for l in error.message.splitlines():
-        out += "\t\t{}".format(_tt(l))
+        out += f"\t\t{_tt(l)}"
     return out
 
 
 def _get_all_task_executions_for_node(client, node_execution_identifier):
     fetched_task_execs = []
     token = ""
+    num_to_fetch = 100
     while True:
-        num_to_fetch = 100
         task_execs, next_token = client.list_task_executions_paginated(
             node_execution_identifier=node_execution_identifier,
             limit=num_to_fetch,
             token=token,
         )
-        for te in task_execs:
-            fetched_task_execs.append(te)
-
+        fetched_task_execs.extend(iter(task_execs))
         if not next_token:
             break
         token = next_token
@@ -1333,8 +1335,8 @@ def _get_all_task_executions_for_node(client, node_execution_identifier):
 def _get_all_node_executions(client, workflow_execution_identifier=None, task_execution_identifier=None):
     all_node_execs = []
     token = ""
+    num_to_fetch = 100
     while True:
-        num_to_fetch = 100
         if workflow_execution_identifier:
             node_execs, next_token = client.list_node_executions(
                 workflow_execution_identifier=workflow_execution_identifier,
@@ -1355,10 +1357,10 @@ def _get_all_node_executions(client, workflow_execution_identifier=None, task_ex
 
 
 def _render_node_executions(client, node_execs, show_io, verbose, host, insecure, wf_execution=None):
-    node_executions_to_task_executions = {}
-    for node_exec in node_execs:
-        node_executions_to_task_executions[node_exec.id] = _get_all_task_executions_for_node(client, node_exec.id)
-
+    node_executions_to_task_executions = {
+        node_exec.id: _get_all_task_executions_for_node(client, node_exec.id)
+        for node_exec in node_execs
+    }
     uri_to_message_map = _get_io(node_execs, wf_execution, show_io, verbose)
     if wf_execution is not None:
         _render_workflow_execution(wf_execution, uri_to_message_map, show_io, verbose)
@@ -1367,7 +1369,7 @@ def _render_node_executions(client, node_execs, show_io, verbose, host, insecure
     for ne in sorted(node_execs, key=lambda x: x.closure.started_at):
         if ne.id.node_id == "start-node":
             continue
-        _click.echo("\t\tID: {}\n".format(_tt(ne.id.node_id)))
+        _click.echo(f"\t\tID: {_tt(ne.id.node_id)}\n")
         _click.echo("\t\t\t{:15} ".format("Status:"), nl=False)
         _secho_node_execution_status(ne.closure.phase)
         _click.echo("\t\t\t{:15} {:60} ".format("Started:", _tt(ne.closure.started_at)))
@@ -1402,7 +1404,7 @@ def _render_node_executions(client, node_execs, show_io, verbose, host, insecure
         if len(task_executions) > 0:
             _click.echo("\n\t\t\tTask Executions:\n")
             for te in sorted(task_executions, key=lambda x: x.id.retry_attempt):
-                _click.echo("\t\t\t\tAttempt {}:\n".format(te.id.retry_attempt))
+                _click.echo(f"\t\t\t\tAttempt {te.id.retry_attempt}:\n")
                 _click.echo("\t\t\t\t\t{:15} {:60} ".format("Created:", _tt(te.closure.created_at)))
                 _click.echo("\t\t\t\t\t{:15} {:60} ".format("Started:", _tt(te.closure.started_at)))
                 _click.echo("\t\t\t\t\t{:15} {:60} ".format("Updated:", _tt(te.closure.updated_at)))
@@ -1488,7 +1490,9 @@ def register_project(identifier, name, description, host, insecure):
     _welcome_message()
     client = _get_client(host, insecure)
     client.register_project(_Project(identifier, name, description))
-    _click.echo("Registered project [id: {}, name: {}, description: {}]".format(identifier, name, description))
+    _click.echo(
+        f"Registered project [id: {identifier}, name: {name}, description: {description}]"
+    )
 
 
 @_flyte_cli.command("list-projects", cls=_FlyteSubCommand)
@@ -1516,11 +1520,11 @@ def list_projects(host, insecure, token, limit, show_all, filter, sort_by):
             sort_by=_admin_common.Sort.from_python_std(sort_by) if sort_by else None,
         )
         for p in projects:
-            _click.echo("\t{}".format(_tt(p.id)))
+            _click.echo(f"\t{_tt(p.id)}")
 
         if show_all is not True:
             if next_token:
-                _click.echo("Received next token: {}\n".format(next_token))
+                _click.echo(f"Received next token: {next_token}\n")
             break
         if not next_token:
             break
@@ -1541,7 +1545,7 @@ def archive_project(identifier, host, insecure):
     client = _get_client(host, insecure)
 
     client.update_project(_Project.archived_project(identifier))
-    _click.echo("Archived project [id: {}]".format(identifier))
+    _click.echo(f"Archived project [id: {identifier}]")
 
 
 @_flyte_cli.command("activate-project", cls=_FlyteSubCommand)
@@ -1556,7 +1560,7 @@ def activate_project(identifier, host, insecure):
     _welcome_message()
     client = _get_client(host, insecure)
     client.update_project(_Project.active_project(identifier))
-    _click.echo("Activated project [id: {}]".format(identifier))
+    _click.echo(f"Activated project [id: {identifier}]")
 
 
 _resource_map = {
@@ -1591,8 +1595,7 @@ def _extract_pair(
     registerable_identifier, registerable_entity = hydrate_registration_parameters(
         resource_type, project, domain, version, entity
     )
-    patch_fn = patches.get(resource_type)
-    if patch_fn:
+    if patch_fn := patches.get(resource_type):
         registerable_entity = patch_fn(registerable_entity)
     return registerable_identifier, registerable_entity
 
@@ -1722,8 +1725,7 @@ def register_files(
     :return:
     """
     _welcome_message()
-    files = list(files)
-    files.sort()
+    files = sorted(files)
     _click.secho("Parsing files...", fg="green", bold=True)
     for f in files:
         _click.echo(f"  {f}")
@@ -1801,8 +1803,7 @@ def fast_register_files(
     :return:
     """
     _welcome_message()
-    files = list(files)
-    files.sort()
+    files = sorted(files)
     _click.secho("Parsing files...", fg="green", bold=True)
     compressed_source, digest = None, None
     pb_files = []
@@ -1958,14 +1959,12 @@ def update_cluster_resource_attributes(host, insecure, project, domain, name, at
     if name is not None:
         client.update_workflow_attributes(project, domain, name, matching_attributes)
         _click.echo(
-            "Successfully updated cluster resource attributes for project: {}, domain: {}, and workflow: {}".format(
-                project, domain, name
-            )
+            f"Successfully updated cluster resource attributes for project: {project}, domain: {domain}, and workflow: {name}"
         )
     else:
         client.update_project_domain_attributes(project, domain, matching_attributes)
         _click.echo(
-            "Successfully updated cluster resource attributes for project: {} and domain: {}".format(project, domain)
+            f"Successfully updated cluster resource attributes for project: {project} and domain: {domain}"
         )
 
 
@@ -1992,14 +1991,12 @@ def update_execution_queue_attributes(host, insecure, project, domain, name, tag
     if name is not None:
         client.update_workflow_attributes(project, domain, name, matching_attributes)
         _click.echo(
-            "Successfully updated execution queue attributes for project: {}, domain: {}, and workflow: {}".format(
-                project, domain, name
-            )
+            f"Successfully updated execution queue attributes for project: {project}, domain: {domain}, and workflow: {name}"
         )
     else:
         client.update_project_domain_attributes(project, domain, matching_attributes)
         _click.echo(
-            "Successfully updated execution queue attributes for project: {} and domain: {}".format(project, domain)
+            f"Successfully updated execution queue attributes for project: {project} and domain: {domain}"
         )
 
 
@@ -2026,14 +2023,12 @@ def update_execution_cluster_label(host, insecure, project, domain, name, value)
     if name is not None:
         client.update_workflow_attributes(project, domain, name, matching_attributes)
         _click.echo(
-            "Successfully updated execution cluster label for project: {}, domain: {}, and workflow: {}".format(
-                project, domain, name
-            )
+            f"Successfully updated execution cluster label for project: {project}, domain: {domain}, and workflow: {name}"
         )
     else:
         client.update_project_domain_attributes(project, domain, matching_attributes)
         _click.echo(
-            "Successfully updated execution cluster label for project: {} and domain: {}".format(project, domain)
+            f"Successfully updated execution cluster label for project: {project} and domain: {domain}"
         )
 
 
@@ -2066,13 +2061,13 @@ def update_plugin_override(host, insecure, project, domain, name, task_type, plu
     if name is not None:
         client.update_workflow_attributes(project, domain, name, matching_attributes)
         _click.echo(
-            "Successfully updated plugin override for project: {}, domain: {}, and workflow: {}".format(
-                project, domain, name
-            )
+            f"Successfully updated plugin override for project: {project}, domain: {domain}, and workflow: {name}"
         )
     else:
         client.update_project_domain_attributes(project, domain, matching_attributes)
-        _click.echo("Successfully updated plugin override for project: {} and domain: {}".format(project, domain))
+        _click.echo(
+            f"Successfully updated plugin override for project: {project} and domain: {domain}"
+        )
 
 
 @_flyte_cli.command("get-matching-attributes", cls=_FlyteSubCommand)
@@ -2107,12 +2102,12 @@ def get_matching_attributes(host, insecure, project, domain, name, resource_type
         attributes = client.get_workflow_attributes(
             project, domain, name, _MatchableResource.string_to_enum(resource_type.upper())
         )
-        _click.echo("{}".format(attributes))
     else:
         attributes = client.get_project_domain_attributes(
             project, domain, _MatchableResource.string_to_enum(resource_type.upper())
         )
-        _click.echo("{}".format(attributes))
+
+    _click.echo(f"{attributes}")
 
 
 @_flyte_cli.command("list-matching-attributes", cls=_FlyteSubCommand)
@@ -2151,7 +2146,7 @@ def list_matching_attributes(host, insecure, resource_type):
             fg="blue",
             nl=False,
         )
-        _click.echo("{}".format(cfg.attributes))
+        _click.echo(f"{cfg.attributes}")
 
 
 @_flyte_cli.command("setup-config", cls=_FlyteSubCommand)
@@ -2165,19 +2160,19 @@ def setup_config(host, insecure):
     _welcome_message()
     config_file = _get_config_file_path()
     if _get_user_filepath_home() and _os.path.exists(config_file):
-        _click.secho("Config file already exists at {}".format(_tt(config_file)), fg="blue")
+        _click.secho(f"Config file already exists at {_tt(config_file)}", fg="blue")
         return
 
     # Before creating check that the directory exists and create if not
     config_dir = _os.path.join(_get_user_filepath_home(), _default_config_file_dir)
     if not _os.path.isdir(config_dir):
         _click.secho(
-            "Creating default Flyte configuration directory at {}".format(_tt(config_dir)),
+            f"Creating default Flyte configuration directory at {_tt(config_dir)}",
             fg="blue",
         )
         _os.mkdir(config_dir)
 
-    full_host = "http://{}".format(host) if insecure else "https://{}".format(host)
+    full_host = f"http://{host}" if insecure else f"https://{host}"
     config_url = _urlparse.urljoin(full_host, "config/v1/flyte_client")
     response = _requests.get(config_url)
     data = response.json()
@@ -2195,15 +2190,15 @@ def setup_config(host, insecure):
     with open(config_file, "w+") as f:
         parser = _configparser.ConfigParser()
         parser.add_section("platform")
-        for key in platform_config.keys():
-            parser.set("platform", key, platform_config[key])
+        for key, value in platform_config.items():
+            parser.set("platform", key, value)
         if not insecure:
             parser.add_section("credentials")
             for key in credentials_config.keys():
                 # ConfigParser needs all keys to be strings
                 parser.set("credentials", key, str(credentials_config[key]))
         parser.write(f)
-    _click.secho("Wrote default config file to {}".format(_tt(config_file)), fg="blue")
+    _click.secho(f"Wrote default config file to {_tt(config_file)}", fg="blue")
 
 
 if __name__ == "__main__":

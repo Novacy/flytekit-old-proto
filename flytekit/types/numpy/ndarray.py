@@ -52,7 +52,7 @@ class NumpyArrayTransformer(TypeTransformer[np.ndarray]):
             )
         )
 
-        local_path = ctx.file_access.get_random_local_path() + ".npy"
+        local_path = f"{ctx.file_access.get_random_local_path()}.npy"
         pathlib.Path(local_path).parent.mkdir(parents=True, exist_ok=True)
 
         # save numpy array to file

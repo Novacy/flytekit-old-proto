@@ -65,7 +65,9 @@ def test_end_to_end(start_method: str) -> None:
     task by performing a `dist.all_reduce` operation. The correct result can
     only be obtained if the distributed process group is initialized correctly.
     """
-    assert distributed_result == sum([5 + 2 * rank + world_size for rank in range(world_size)])
+    assert distributed_result == sum(
+        5 + 2 * rank + world_size for rank in range(world_size)
+    )
 
 
 @pytest.mark.parametrize(
@@ -140,7 +142,7 @@ def test_deck(start_method: str) -> None:
     ctx = flytekit.current_context()
 
     expected_deck_names = {"timeline", "default", "test-deck"}
-    found_deck_names = set(d.name for d in ctx.decks)
+    found_deck_names = {d.name for d in ctx.decks}
 
     assert expected_deck_names.issubset(found_deck_names)
 

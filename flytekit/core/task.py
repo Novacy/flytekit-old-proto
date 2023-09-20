@@ -276,10 +276,7 @@ def task(
         update_wrapper(task_instance, fn)
         return task_instance
 
-    if _task_function:
-        return wrapper(_task_function)
-    else:
-        return wrapper
+    return wrapper(_task_function) if _task_function else wrapper
 
 
 class ReferenceTask(ReferenceEntity, PythonFunctionTask):  # type: ignore

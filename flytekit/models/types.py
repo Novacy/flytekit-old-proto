@@ -349,11 +349,15 @@ class LiteralType(_common.FlyteIdlEntity):
         else:
             metadata = None
 
-        t = _types_pb2.LiteralType(
+        return _types_pb2.LiteralType(
             simple=self.simple if self.simple is not None else None,
             schema=self.schema.to_flyte_idl() if self.schema is not None else None,
-            collection_type=self.collection_type.to_flyte_idl() if self.collection_type is not None else None,
-            map_value_type=self.map_value_type.to_flyte_idl() if self.map_value_type is not None else None,
+            collection_type=self.collection_type.to_flyte_idl()
+            if self.collection_type is not None
+            else None,
+            map_value_type=self.map_value_type.to_flyte_idl()
+            if self.map_value_type is not None
+            else None,
             blob=self.blob.to_flyte_idl() if self.blob is not None else None,
             enum_type=self.enum_type.to_flyte_idl() if self.enum_type else None,
             union_type=self.union_type.to_flyte_idl() if self.union_type else None,
@@ -364,7 +368,6 @@ class LiteralType(_common.FlyteIdlEntity):
             annotation=self.annotation.to_flyte_idl() if self.annotation else None,
             structure=self.structure.to_flyte_idl() if self.structure else None,
         )
-        return t
 
     @classmethod
     def from_flyte_idl(cls, proto):

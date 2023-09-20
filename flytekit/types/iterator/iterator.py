@@ -27,15 +27,13 @@ class FlyteIterator:
         return self
 
     def __next__(self):
-        if self._index < self._length:
-            lits = self._lv.collection.literals
-            st = get_args(self._expected_python_type)[0]
-            lt = TypeEngine.to_python_value(self._ctx, lits[self._index], st)
-            self._index += 1
-            return lt
-
-        else:
+        if self._index >= self._length:
             raise StopIteration
+        lits = self._lv.collection.literals
+        st = get_args(self._expected_python_type)[0]
+        lt = TypeEngine.to_python_value(self._ctx, lits[self._index], st)
+        self._index += 1
+        return lt
 
 
 class IteratorTransformer(TypeTransformer[typing.Iterator]):

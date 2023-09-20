@@ -98,13 +98,12 @@ class PyTorch2ONNXTransformer(TypeTransformer[PyTorch2ONNX]):
     ) -> Literal:
         python_type, config = extract_config(python_type)
 
-        if config:
-            local_path = to_onnx(ctx, python_val.model, config.__dict__.copy())
-            remote_path = ctx.file_access.get_random_remote_path()
-            ctx.file_access.put_data(local_path, remote_path, is_multipart=False)
-        else:
+        if not config:
             raise TypeTransformerFailedError(f"{python_type}'s config is None")
 
+        local_path = to_onnx(ctx, python_val.model, config.__dict__.copy())
+        remote_path = ctx.file_access.get_random_remote_path()
+        ctx.file_access.put_data(local_path, remote_path, is_multipart=False)
         return Literal(
             scalar=Scalar(
                 blob=Blob(

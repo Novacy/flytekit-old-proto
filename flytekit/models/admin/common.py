@@ -53,8 +53,7 @@ class Sort(_common.FlyteIdlEntity):
         text = text.strip()
         if text[-1] != ")":
             raise ValueError(
-                "Could not parse string.  Must be in format 'asc(key)' or 'desc(key)'.  '{}' did not "
-                "end with ')'.".format(text)
+                f"Could not parse string.  Must be in format 'asc(key)' or 'desc(key)'.  '{text}' did not end with ')'."
             )
         if text.startswith("asc("):
             direction = Sort.Direction.ASCENDING
@@ -64,7 +63,6 @@ class Sort(_common.FlyteIdlEntity):
             key = text[len("desc(") : -1].strip()
         else:
             raise ValueError(
-                "Could not parse string.  Must be in format 'asc(key)' or 'desc(key)'.  '{}' did not "
-                "start with 'asc(' or 'desc'.".format(text)
+                f"Could not parse string.  Must be in format 'asc(key)' or 'desc(key)'.  '{text}' did not start with 'asc(' or 'desc'."
             )
         return cls(key=key, direction=direction)

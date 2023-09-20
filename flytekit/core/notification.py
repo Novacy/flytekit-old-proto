@@ -49,7 +49,7 @@ class Notification(_common_model.Notification):
         """
         :param list[int] phases:
         """
-        if len(phases) == 0:
+        if not phases:
             raise AssertionError("You must specify at least one phase for a notification.")
         for phase in phases:
             if phase not in self.VALID_PHASES:

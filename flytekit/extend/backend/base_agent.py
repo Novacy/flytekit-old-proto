@@ -133,11 +133,11 @@ def convert_to_flyte_state(state: str) -> State:
     Convert the state from the agent to the state in flyte.
     """
     state = state.lower()
-    if state in ["failed", "timedout", "canceled"]:
+    if state in {"failed", "timedout", "canceled"}:
         return RETRYABLE_FAILURE
-    elif state in ["done", "succeeded", "success"]:
+    elif state in {"done", "succeeded", "success"}:
         return SUCCEEDED
-    elif state in ["running"]:
+    elif state in {"running"}:
         return RUNNING
     raise ValueError(f"Unrecognized state: {state}")
 
@@ -180,10 +180,12 @@ class AsyncAgentExecutorMixin:
         ctx = FlyteContext.current_context()
         grpc_ctx = _get_grpc_context()
 
-        # Convert python inputs to literals
-        literals = {}
-        for k, v in inputs.items():
-            literals[k] = TypeEngine.to_literal(ctx, v, type(v), self._entity.interface.inputs[k].type)
+        literals = {
+            k: TypeEngine.to_literal(
+                ctx, v, type(v), self._entity.interface.inputs[k].type
+            )
+            for k, v in inputs.items()
+        }
         inputs = LiteralMap(literals) if literals else None
         output_prefix = ctx.file_access.get_random_local_directory()
 
@@ -229,5 +231,4 @@ class AsyncAgentExecutorMixin:
 def _get_grpc_context():
     from unittest.mock import MagicMock
 
-    grpc_ctx = MagicMock(spec=grpc.ServicerContext)
-    return grpc_ctx
+    return MagicMock(spec=grpc.ServicerContext)

@@ -99,16 +99,16 @@ class YamlConfigEntry(object):
 
 def bool_transformer(config_val: typing.Any) -> bool:
     if type(config_val) is str:
-        return True if config_val and not config_val.lower() in ["false", "0", "off", "no"] else False
+        return bool(
+            config_val
+            and config_val.lower() not in ["false", "0", "off", "no"]
+        )
     else:
         return config_val
 
 
 def comma_list_transformer(config_val: typing.Any):
-    if type(config_val) is str:
-        return config_val.split(",")
-    else:
-        return config_val
+    return config_val.split(",") if type(config_val) is str else config_val
 
 
 def int_transformer(config_val: typing.Any):
@@ -183,8 +183,7 @@ class ConfigFile(object):
     def _read_yaml_config(location: str) -> typing.Optional[typing.Dict[str, typing.Any]]:
         with open(location, "r") as fh:
             try:
-                yaml_contents = yaml.safe_load(fh)
-                return yaml_contents
+                return yaml.safe_load(fh)
             except yaml.YAMLError as exc:
                 logger.warning(f"Error {exc} reading yaml config file at {location}, ignoring...")
                 return None
@@ -194,7 +193,7 @@ class ConfigFile(object):
         c.read(self._location)
         if c.has_section("internal"):
             raise _user_exceptions.FlyteAssertion(
-                "The config file '{}' cannot contain a section for internal " "only configurations.".format(location)
+                f"The config file '{location}' cannot contain a section for internal only configurations."
             )
         return c
 
@@ -243,10 +242,10 @@ def get_config_file(c: typing.Union[str, ConfigFile, None]) -> typing.Optional[C
     Checks if the given argument is a file or a configFile and returns a loaded configFile else returns None
     """
     if c is None:
-        # Pyflyte override env var takes highest precedence
-        # Env var takes second highest precedence
-        flytectl_path_from_env = getenv(FLYTECTL_CONFIG_ENV_VAR_OVERRIDE, getenv(FLYTECTL_CONFIG_ENV_VAR, None))
-        if flytectl_path_from_env:
+        if flytectl_path_from_env := getenv(
+            FLYTECTL_CONFIG_ENV_VAR_OVERRIDE,
+            getenv(FLYTECTL_CONFIG_ENV_VAR, None),
+        ):
             flytectl_path = Path(flytectl_path_from_env)
             if flytectl_path.exists():
                 logger.info(f"Using flytectl/YAML config {flytectl_path.absolute()}")

@@ -110,7 +110,7 @@ class SagemakerBuiltinAlgorithmsTask(PythonTask[SagemakerTrainingJobConfig]):
         if content_type == _training_job_models.InputContentType.TEXT_CSV:
             return "csv"
         else:
-            raise ValueError("Unsupported InputContentType: {}".format(content_type))
+            raise ValueError(f"Unsupported InputContentType: {content_type}")
 
 
 class SagemakerCustomTrainingTask(PythonFunctionTask[SagemakerTrainingJobConfig]):

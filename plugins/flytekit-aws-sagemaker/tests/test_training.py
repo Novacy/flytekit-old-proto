@@ -20,14 +20,15 @@ from flytekit.core.context_manager import ExecutionParameters
 
 def _get_reg_settings():
     default_img = Image(name="default", fqn="test", tag="tag")
-    settings = SerializationSettings(
+    return SerializationSettings(
         project="project",
         domain="domain",
         version="version",
         env={"FOO": "baz"},
-        image_config=ImageConfig(default_image=default_img, images=[default_img]),
+        image_config=ImageConfig(
+            default_image=default_img, images=[default_img]
+        ),
     )
-    return settings
 
 
 def test_builtin_training():

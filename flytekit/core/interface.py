@@ -22,9 +22,7 @@ T = typing.TypeVar("T")
 
 def repr_kv(k: str, v: Union[Type, Tuple[Type, Any]]) -> str:
     if isinstance(v, tuple):
-        if v[1]:
-            return f"{k}: {v[0]}={v[1]}"
-        return f"{k}: {v[0]}"
+        return f"{k}: {v[0]}={v[1]}" if v[1] else f"{k}: {v[0]}"
     return f"{k}: {v}"
 
 
@@ -39,7 +37,7 @@ def repr_type_signature(io: Union[Dict[str, Tuple[Type, Any]], Dict[str, Type]])
             s += ", "
         s += repr_kv(k, v)
         i = i + 1
-    return s + ")"
+    return f"{s})"
 
 
 class Interface(object):
@@ -75,12 +73,13 @@ class Interface(object):
         self._output_tuple_name = output_tuple_name
 
         if outputs:
-            variables = [k for k in outputs.keys()]
+            variables = list(outputs.keys())
 
-            # TODO: This class is a duplicate of the one in create_task_outputs. Over time, we should move to this one.
-            class Output(  # type: ignore
+
+
+            class Output((  # type: ignore
                 collections.namedtuple(output_tuple_name or "DefaultNamedTupleOutput", variables)  # type: ignore
-            ):  # type: ignore
+            )):    # type: ignore
                 """
                 This class can be used in two different places. For multivariate-return entities this class is used
                 to rewrap the outputs so that our with_overrides function can work.
@@ -95,10 +94,14 @@ class Interface(object):
 
                 @property
                 def ref(self):
-                    for var_name in variables:
-                        if self.__getattribute__(var_name).ref:
-                            return self.__getattribute__(var_name).ref
-                    return None
+                    return next(
+                        (
+                            self.__getattribute__(var_name).ref
+                            for var_name in variables
+                            if self.__getattribute__(var_name).ref
+                        ),
+                        None,
+                    )
 
                 def runs_before(self, *args, **kwargs):
                     """
@@ -108,6 +111,7 @@ class Interface(object):
 
                 def __rshift__(self, *args, **kwargs):
                     ...  # See runs_before
+
 
             self._output_tuple_class = Output
         self._docstring = docstring
@@ -122,16 +126,11 @@ class Interface(object):
 
     @property
     def inputs(self) -> Dict[str, type]:
-        r = {}
-        for k, v in self._inputs.items():
-            r[k] = v[0]
-        return r
+        return {k: v[0] for k, v in self._inputs.items()}
 
     @property
     def output_names(self) -> Optional[List[str]]:
-        if self.outputs:
-            return [k for k in self.outputs.keys()]
-        return None
+        return list(self.outputs.keys()) if self.outputs else None
 
     @property
     def inputs_with_defaults(self) -> Dict[str, Tuple[Type, Any]]:
@@ -266,20 +265,19 @@ def transform_types_to_list_of_type(
             # singletons
             continue
         v_type = type(v)
-        if v_type != typing.List and v_type != list:
+        if v_type not in [typing.List, list]:
             all_types_are_collection = False
             break
 
     if all_types_are_collection:
         return m
 
-    om = {}
-    for k, v in m.items():
-        if k in bound_inputs:
-            om[k] = v
-        else:
-            om[k] = typing.List[typing.Optional[v] if list_as_optional else v]  # type: ignore
-    return om  # type: ignore
+    return {
+        k: v
+        if k in bound_inputs
+        else typing.List[typing.Optional[v] if list_as_optional else v]
+        for k, v in m.items()
+    }
 
 
 def transform_interface_to_list_interface(
@@ -398,7 +396,7 @@ def extract_return_annotation(return_annotation: Union[Type, Tuple, None]) -> Di
 
     # This statement results in true for typing.Namedtuple, single and void return types, so this
     # handles Options 1, 2. Even though NamedTuple for us is multi-valued, it's a single value for Python
-    if isinstance(return_annotation, Type) or isinstance(return_annotation, TypeVar):  # type: ignore
+    if isinstance(return_annotation, (Type, TypeVar)):  # type: ignore
         # isinstance / issubclass does not work for Namedtuple.
         # Options 1 and 2
         bases = return_annotation.__bases__  # type: ignore
@@ -438,4 +436,4 @@ def remap_shared_output_descriptions(output_descriptions: Dict[str, str], output
     if len(output_descriptions) != 1:
         return output_descriptions
     _, shared_description = next(iter(output_descriptions.items()))
-    return {k: shared_description for k, _ in outputs.items()}
+    return {k: shared_description for k in outputs}

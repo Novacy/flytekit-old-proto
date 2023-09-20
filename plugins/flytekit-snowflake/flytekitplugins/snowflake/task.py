@@ -92,5 +92,6 @@ class SnowflakeTask(AsyncAgentExecutorMixin, SQLTask[SnowflakeConfig]):
         }
 
     def get_sql(self, settings: SerializationSettings) -> Optional[_task_model.Sql]:
-        sql = _task_model.Sql(statement=self.query_template, dialect=_task_model.Sql.Dialect.ANSI)
-        return sql
+        return _task_model.Sql(
+            statement=self.query_template, dialect=_task_model.Sql.Dialect.ANSI
+        )

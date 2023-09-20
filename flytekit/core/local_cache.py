@@ -20,20 +20,20 @@ def _recursive_hash_placement(literal: Literal) -> Literal:
         literals = [_recursive_hash_placement(lit) for lit in literal.collection.literals]
         return Literal(collection=LiteralCollection(literals=literals))
     elif literal.map is not None:
-        literal_map = {}
-        for key, literal_value in literal.map.literals.items():
-            literal_map[key] = _recursive_hash_placement(literal_value)
+        literal_map = {
+            key: _recursive_hash_placement(literal_value)
+            for key, literal_value in literal.map.literals.items()
+        }
         return Literal(map=LiteralMap(literal_map))
     else:
         return literal
 
 
 def _calculate_cache_key(task_name: str, cache_version: str, input_literal_map: LiteralMap) -> str:
-    # Traverse the literals and replace the literal with a new literal that only contains the hash
-    literal_map_overridden = {}
-    for key, literal in input_literal_map.literals.items():
-        literal_map_overridden[key] = _recursive_hash_placement(literal)
-
+    literal_map_overridden = {
+        key: _recursive_hash_placement(literal)
+        for key, literal in input_literal_map.literals.items()
+    }
     # Generate a stable representation of the underlying protobuf by passing `deterministic=True` to the
     # protobuf library.
     hashed_inputs = LiteralMap(literal_map_overridden).to_flyte_idl().SerializeToString(deterministic=True)

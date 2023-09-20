@@ -127,7 +127,7 @@ class PythonAutoContainerTask(PythonTask[T], ABC, metaclass=FlyteTrackedABC):
         """
         Returns the default pyflyte-execute command used to run this on hosted Flyte platforms.
         """
-        container_args = [
+        return [
             "pyflyte-execute",
             "--inputs",
             "{{.input}}",
@@ -144,8 +144,6 @@ class PythonAutoContainerTask(PythonTask[T], ABC, metaclass=FlyteTrackedABC):
             "--",
             *self.task_resolver.loader_args(settings, self),
         ]
-
-        return container_args
 
     def set_command_fn(self, get_command_fn: Optional[Callable[[SerializationSettings], List[str]]] = None):
         """
@@ -171,10 +169,7 @@ class PythonAutoContainerTask(PythonTask[T], ABC, metaclass=FlyteTrackedABC):
 
     def get_container(self, settings: SerializationSettings) -> _task_model.Container:
         # if pod_template is not None, return None here but in get_k8s_pod, return pod_template merged with container
-        if self.pod_template is not None:
-            return None
-        else:
-            return self._get_container(settings)
+        return None if self.pod_template is not None else self._get_container(settings)
 
     def _get_container(self, settings: SerializationSettings) -> _task_model.Container:
         env = {}
@@ -233,8 +228,7 @@ class DefaultTaskResolver(TrackedInstance, TaskResolverMixin):
         _, task_module, _, task_name, *_ = loader_args
 
         task_module = importlib.import_module(name=task_module)  # type: ignore
-        task_def = getattr(task_module, task_name)
-        return task_def
+        return getattr(task_module, task_name)
 
     def loader_args(self, settings: SerializationSettings, task: PythonAutoContainerTask) -> List[str]:  # type:ignore
         _, m, t, _ = extract_task_module(task)

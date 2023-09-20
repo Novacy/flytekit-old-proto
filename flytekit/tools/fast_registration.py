@@ -78,10 +78,8 @@ def compute_digest(source: os.PathLike, filter: Optional[callable] = None) -> st
 def _filehash_update(path: os.PathLike, hasher: hashlib._Hash) -> None:
     blocksize = 65536
     with open(path, "rb") as f:
-        bytes = f.read(blocksize)
-        while bytes:
+        while bytes := f.read(blocksize):
             hasher.update(bytes)
-            bytes = f.read(blocksize)
 
 
 def _pathhash_update(path: os.PathLike, hasher: hashlib._Hash) -> None:
@@ -95,7 +93,7 @@ def get_additional_distribution_loc(remote_location: str, identifier: str) -> st
     :param Text identifier:
     :return Text:
     """
-    return posixpath.join(remote_location, "{}.{}".format(identifier, "tar.gz"))
+    return posixpath.join(remote_location, f"{identifier}.tar.gz")
 
 
 @timeit("Download distribution")
@@ -113,7 +111,9 @@ def download_distribution(additional_distribution: str, destination: str):
     FlyteContextManager.current_context().file_access.get_data(additional_distribution, os.path.join(destination, ""))
     tarfile_name = os.path.basename(additional_distribution)
     if not tarfile_name.endswith(".tar.gz"):
-        raise RuntimeError("Unrecognized additional distribution format for {}".format(additional_distribution))
+        raise RuntimeError(
+            f"Unrecognized additional distribution format for {additional_distribution}"
+        )
 
     # This will overwrite the existing user flyte workflow code in the current working code dir.
     result = _subprocess.run(

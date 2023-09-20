@@ -55,7 +55,7 @@ class AWSBatchFunctionTask(PythonFunctionTask):
         return {**super().get_config(settings), "platformCapabilities": self._task_config.platformCapabilities}
 
     def get_command(self, settings: SerializationSettings) -> List[str]:
-        container_args = [
+        return [
             "pyflyte-execute",
             "--inputs",
             "{{.input}}",
@@ -72,8 +72,6 @@ class AWSBatchFunctionTask(PythonFunctionTask):
             "--",
             *self.task_resolver.loader_args(settings, self),
         ]
-
-        return container_args
 
 
 # Inject the AWS batch plugin into flytekits dynamic plugin loading system

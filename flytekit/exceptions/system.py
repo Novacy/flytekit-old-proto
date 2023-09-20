@@ -17,7 +17,9 @@ class FlyteEntrypointNotLoadable(FlyteSystemException):
         if task_name is None:
             return "Entrypoint is not loadable!  Could not load the module: '{task_module}'{additional_msg}".format(
                 task_module=task_module,
-                additional_msg=" due to error: {}".format(additional_msg) if additional_msg is not None else ".",
+                additional_msg=f" due to error: {additional_msg}"
+                if additional_msg is not None
+                else ".",
             )
         else:
             return (
@@ -25,7 +27,9 @@ class FlyteEntrypointNotLoadable(FlyteSystemException):
                 "{additional_msg}".format(
                     task_module=task_module,
                     task_name=task_name,
-                    additional_msg="." if additional_msg is None else " due to error: {}".format(additional_msg),
+                    additional_msg="."
+                    if additional_msg is None
+                    else f" due to error: {additional_msg}",
                 )
             )
 

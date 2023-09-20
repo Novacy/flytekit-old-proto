@@ -1533,14 +1533,16 @@ def test_union_from_unambiguous_literal():
 
 
 def test_union_custom_transformer():
+
+
+
     class MyInt:
         def __init__(self, x: int):
             self.val = x
 
         def __eq__(self, other):
-            if not isinstance(other, MyInt):
-                return False
-            return other.val == self.val
+            return False if not isinstance(other, MyInt) else other.val == self.val
+
 
     TypeEngine.register(
         SimpleTransformer(
@@ -1584,16 +1586,19 @@ def test_union_custom_transformer():
 
 
 def test_union_custom_transformer_sanity_check():
+
+
+
     class UnsignedInt:
         def __init__(self, x: int):
             self.val = x
 
         def __eq__(self, other):
-            if not isinstance(other, UnsignedInt):
-                return False
-            return other.val == self.val
+            return False if not isinstance(other, UnsignedInt) else other.val == self.val
 
-    # This transformer will not work in the implicit wrapping case
+
+
+
     class UnsignedIntTransformer(TypeTransformer[UnsignedInt]):
         def __init__(self):
             super().__init__("UnsignedInt", UnsignedInt)
@@ -1614,7 +1619,8 @@ def test_union_custom_transformer_sanity_check():
 
         def to_python_value(self, ctx: FlyteContext, lv: Literal, expected_python_type: typing.Type[T]) -> Literal:
             val = lv.scalar.primitive.integer
-            return UnsignedInt(0 if val < 0 else val)  # type: ignore
+            return UnsignedInt(max(val, 0))
+
 
     TypeEngine.register(UnsignedIntTransformer())
 

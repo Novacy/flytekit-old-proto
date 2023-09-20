@@ -62,11 +62,10 @@ class SQLAlchemyConfig(object):
         if self.secret_connect_args is None:
             return None
 
-        secret_connect_args_dicts = {}
-        for key, secret in self.secret_connect_args.items():
-            secret_connect_args_dicts[key] = self._secret_to_dict(secret)
-
-        return secret_connect_args_dicts
+        return {
+            key: self._secret_to_dict(secret)
+            for key, secret in self.secret_connect_args.items()
+        }
 
 
 class SQLAlchemyTask(PythonCustomizedContainerTask[SQLAlchemyConfig], SQLTask[SQLAlchemyConfig]):
@@ -88,11 +87,7 @@ class SQLAlchemyTask(PythonCustomizedContainerTask[SQLAlchemyConfig], SQLTask[SQ
         container_image: str = SQLAlchemyDefaultImages.default_image(),
         **kwargs,
     ):
-        if output_schema_type:
-            outputs = kwtypes(results=output_schema_type)
-        else:
-            outputs = None
-
+        outputs = kwtypes(results=output_schema_type) if output_schema_type else None
         super().__init__(
             name=name,
             task_config=task_config,

@@ -53,7 +53,7 @@ def serialize_all(
     :param flytekit_virtualenv_root: The full path of the virtual env in the container.
     """
 
-    if not (mode == SerializationMode.DEFAULT or mode == SerializationMode.FAST):
+    if mode not in [SerializationMode.DEFAULT, SerializationMode.FAST]:
         raise AssertionError(f"Unrecognized serialization mode: {mode}")
 
     serialization_settings = SerializationSettings(

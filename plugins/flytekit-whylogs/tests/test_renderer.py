@@ -48,8 +48,7 @@ def run_constraints(df: pd.DataFrame, min_value: Optional[float] = 0.0, max_valu
 @workflow
 def whylogs_renderers_workflow(min_value: float, max_value: float) -> bool:
     df = make_data(n_rows=10)
-    validated = run_constraints(df=df, min_value=min_value, max_value=max_value)
-    return validated
+    return run_constraints(df=df, min_value=min_value, max_value=max_value)
 
 
 def test_constraints_passing():

@@ -125,11 +125,10 @@ class LaunchPlan(object):
         # argument to this function. We'll take the latter as having higher precedence.
         wf_signature_parameters = transform_inputs_to_parameters(ctx, workflow.python_interface)
 
-        # Construct a new Interface object with just the default inputs given to get Parameters, maybe there's an
-        # easier way to do this, think about it later.
-        temp_inputs = {}
-        for k, v in default_inputs.items():
-            temp_inputs[k] = (workflow.python_interface.inputs[k], v)
+        temp_inputs = {
+            k: (workflow.python_interface.inputs[k], v)
+            for k, v in default_inputs.items()
+        }
         temp_interface = Interface(inputs=temp_inputs, outputs={})  # type: ignore
         temp_signature = transform_inputs_to_parameters(ctx, temp_interface)
         wf_signature_parameters._parameters.update(temp_signature.parameters)
@@ -416,18 +415,15 @@ class LaunchPlan(object):
         return self.workflow.construct_node_metadata()
 
     def __call__(self, *args, **kwargs):
-        if len(args) > 0:
+        if args:
             raise AssertionError("Only Keyword Arguments are supported for launch plan executions")
 
         ctx = FlyteContext.current_context()
+        inputs = self.saved_inputs
         if ctx.compilation_state is not None:
-            inputs = self.saved_inputs
             inputs.update(kwargs)
             return create_and_link_node(ctx, entity=self, **inputs)
         else:
-            # Calling a launch plan should just forward the call to the workflow, nothing more. But let's add in the
-            # saved inputs.
-            inputs = self.saved_inputs
             inputs.update(kwargs)
             return self.workflow(*args, **inputs)
 

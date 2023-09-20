@@ -49,8 +49,10 @@ class SagemakerHPOTask(PythonTask[HPOJob]):
         **kwargs
     ):
         if training_task is None or not (
-            isinstance(training_task, SagemakerCustomTrainingTask)
-            or isinstance(training_task, SagemakerBuiltinAlgorithmsTask)
+            isinstance(
+                training_task,
+                (SagemakerCustomTrainingTask, SagemakerBuiltinAlgorithmsTask),
+            )
         ):
             raise ValueError(
                 "Training Task of type SagemakerCustomTrainingTask/SagemakerBuiltinAlgorithmsTask is required to work"

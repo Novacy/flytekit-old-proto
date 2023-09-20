@@ -132,12 +132,11 @@ def hash_file(file_path: typing.Union[os.PathLike, str]) -> (bytes, str):
 
     with open(file_path, "rb") as file:
         while True:
-            # Reading is buffered, so we can read smaller chunks.
-            chunk = file.read(h.block_size)
-            if not chunk:
-                break
-            h.update(chunk)
+            if chunk := file.read(h.block_size):
+                h.update(chunk)
 
+            else:
+                break
     return h.digest(), h.hexdigest()
 
 

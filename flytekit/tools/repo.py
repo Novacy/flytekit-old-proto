@@ -134,9 +134,8 @@ def find_common_root(
         root = _find_project_root(pm)
         if project_root is None:
             project_root = root
-        else:
-            if project_root != root:
-                raise ValueError(f"Specified module {pm} has root {root} but {project_root} already specified")
+        elif project_root != root:
+            raise ValueError(f"Specified module {pm} has root {root} but {project_root} already specified")
 
     logger.debug(f"Common root folder detected as {str(project_root)}")
 
@@ -178,27 +177,25 @@ def load_packages_and_modules(
         )
         pkgs_and_modules.append(dot_delineated)
 
-    registrable_entities = serialize(pkgs_and_modules, ss, str(project_root), options)
-
-    return registrable_entities
+    return serialize(pkgs_and_modules, ss, str(project_root), options)
 
 
 def secho(i: Identifier, state: str = "success", reason: str = None, op: str = "Registration"):
     state_ind = "[ ]"
     fg = "white"
     nl = False
-    if state == "success":
-        state_ind = "\r[✔]"
-        fg = "green"
-        nl = True
-        reason = f"successful with version {i.version}" if not reason else reason
-    elif state == "failed":
+    if state == "failed":
         state_ind = "\r[x]"
         fg = "red"
         nl = True
         reason = "skipped!"
+    elif state == "success":
+        state_ind = "\r[✔]"
+        fg = "green"
+        nl = True
+        reason = f"successful with version {i.version}" if not reason else reason
     click.secho(
-        click.style(f"{state_ind}", fg=fg) + f" {op} {i.name} type {i.resource_type_name()} {reason}",
+        f'{click.style(f"{state_ind}", fg=fg)} {op} {i.name} type {i.resource_type_name()} {reason}',
         dim=True,
         nl=nl,
     )

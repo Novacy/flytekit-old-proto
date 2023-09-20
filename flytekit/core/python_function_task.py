@@ -254,15 +254,13 @@ class PythonFunctionTask(PythonAutoContainerTask[T]):  # type: ignore
                 # DynamicJobSpec later
                 tts.append(model.template)
 
-            dj_spec = _dynamic_job.DynamicJobSpec(
+            return _dynamic_job.DynamicJobSpec(
                 min_successes=len(workflow_spec.template.nodes),
                 tasks=tts,
                 nodes=workflow_spec.template.nodes,
                 outputs=workflow_spec.template.outputs,
                 subworkflows=workflow_spec.sub_workflows,
             )
-
-            return dj_spec
 
     def dynamic_execute(self, task_function: Callable, **kwargs) -> Any:
         """

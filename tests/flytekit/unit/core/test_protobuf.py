@@ -11,7 +11,9 @@ from flytekit.models.types import LiteralType, SimpleType
 def test_proto():
     @task
     def t1(in1: errors_pb2.ContainerError) -> errors_pb2.ContainerError:
-        e2 = errors_pb2.ContainerError(code=in1.code, message=in1.message + "!!!", kind=in1.kind + 1)
+        e2 = errors_pb2.ContainerError(
+            code=in1.code, message=f"{in1.message}!!!", kind=in1.kind + 1
+        )
         return e2
 
     @workflow

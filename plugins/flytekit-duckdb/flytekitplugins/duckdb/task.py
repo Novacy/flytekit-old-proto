@@ -60,18 +60,17 @@ class DuckDBQuery(PythonInstanceTask):
         if any(x in query for x in ("$", "?")):
             if multiple_params:
                 counter += 1
-                if not counter < len(params):
+                if counter >= len(params):
                     raise ValueError("Parameter doesn't exist.")
                 if "insert" in query.lower():
                     # run executemany disregarding the number of entries to store for an insert query
                     yield QueryOutput(output=self._con.executemany(query, params[counter]), counter=counter)
                 else:
                     yield QueryOutput(output=self._con.execute(query, params[counter]), counter=counter)
+            elif params:
+                yield QueryOutput(output=self._con.execute(query, params), counter=counter)
             else:
-                if params:
-                    yield QueryOutput(output=self._con.execute(query, params), counter=counter)
-                else:
-                    raise ValueError("Parameter not specified.")
+                raise ValueError("Parameter not specified.")
         else:
             yield QueryOutput(output=self._con.execute(query), counter=counter)
 

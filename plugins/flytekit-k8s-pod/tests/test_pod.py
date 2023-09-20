@@ -30,8 +30,10 @@ def get_pod_spec(environment=[]):
         )
     ]
 
-    pod_spec = V1PodSpec(restart_policy="OnFailure", containers=[a_container, V1Container(name="another container")])
-    return pod_spec
+    return V1PodSpec(
+        restart_policy="OnFailure",
+        containers=[a_container, V1Container(name="another container")],
+    )
 
 
 @pytest.mark.parametrize(

@@ -26,9 +26,7 @@ from flytekit.types.pickle.pickle import FlytePickleTransformer
 
 
 def remove_prefix(text, prefix):
-    if text.startswith(prefix):
-        return text[len(prefix) :]
-    return text
+    return text[len(prefix) :] if text.startswith(prefix) else text
 
 
 @dataclass
@@ -125,7 +123,7 @@ class JsonParamType(click.ParamType):
     ) -> typing.Any:
         if value is None:
             raise click.BadParameter("None value cannot be converted to a Json type.")
-        if type(value) == dict or type(value) == list:
+        if type(value) in [dict, list]:
             return value
         try:
             return json.loads(value)
@@ -207,11 +205,11 @@ class FlyteLiteralConverter(object):
 
         if self._literal_type.collection_type or self._literal_type.map_value_type:
             self._click_type = JsonParamType()
-            if self._literal_type.collection_type:
-                self._click_type.name = "json list"
-            else:
-                self._click_type.name = "json dictionary"
-
+            self._click_type.name = (
+                "json list"
+                if self._literal_type.collection_type
+                else "json dictionary"
+            )
         if self._literal_type.blob:
             if self._literal_type.blob.dimensionality == BlobType.BlobDimensionality.SINGLE:
                 if self._literal_type.blob.format == FlytePickleTransformer.PYTHON_PICKLE_FORMAT:
@@ -251,7 +249,7 @@ class FlyteLiteralConverter(object):
 
         uri = self.get_uri_for_dir(ctx, value, "00000.parquet")
 
-        lit = Literal(
+        return Literal(
             scalar=Scalar(
                 structured_dataset=literals.StructuredDataset(
                     uri=uri,
@@ -261,8 +259,6 @@ class FlyteLiteralConverter(object):
                 ),
             ),
         )
-
-        return lit
 
     def convert_to_blob(
         self,
@@ -279,7 +275,7 @@ class FlyteLiteralConverter(object):
                 remote = self._remote_instance_accessor()
                 _, uri = remote.upload_file(fp)
 
-        lit = Literal(
+        return Literal(
             scalar=Scalar(
                 blob=Blob(
                     metadata=BlobMetadata(type=self._literal_type.blob),
@@ -287,8 +283,6 @@ class FlyteLiteralConverter(object):
                 ),
             ),
         )
-
-        return lit
 
     def convert_to_union(
         self, ctx: typing.Optional[click.Context], param: typing.Optional[click.Parameter], value: typing.Any
@@ -373,13 +367,12 @@ class FlyteLiteralConverter(object):
         """
         Convert the loaded json object to a Flyte Literal struct type.
         """
-        if type(value) != self._python_type:
-            if is_pydantic_basemodel(self._python_type):
-                o = self._python_type.parse_raw(json.dumps(value))  # type: ignore
-            else:
-                o = cast(DataClassJsonMixin, self._python_type).from_json(json.dumps(value))
-        else:
+        if type(value) == self._python_type:
             o = value
+        elif is_pydantic_basemodel(self._python_type):
+            o = self._python_type.parse_raw(json.dumps(value))  # type: ignore
+        else:
+            o = cast(DataClassJsonMixin, self._python_type).from_json(json.dumps(value))
         return TypeEngine.to_literal(self._flyte_ctx, o, self._python_type, self._literal_type)
 
     def convert_to_literal(

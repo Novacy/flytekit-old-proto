@@ -26,9 +26,7 @@ class Ignore(ABC):
         return self._is_ignored(path)
 
     def tar_filter(self, tarinfo: _tarfile.TarInfo) -> Optional[_tarfile.TarInfo]:
-        if self.is_ignored(tarinfo.name):
-            return None
-        return tarinfo
+        return None if self.is_ignored(tarinfo.name) else tarinfo
 
     @abstractmethod
     def _is_ignored(self, path: str) -> bool:
@@ -60,7 +58,8 @@ class GitIgnore(Ignore):
                 return True
             # Ignore empty directories
             if os.path.isdir(os.path.join(self.root, path)) and all(
-                [self.is_ignored(os.path.join(path, f)) for f in os.listdir(os.path.join(self.root, path))]
+                self.is_ignored(os.path.join(path, f))
+                for f in os.listdir(os.path.join(self.root, path))
             ):
                 return True
         return False
@@ -95,10 +94,7 @@ class StandardIgnore(Ignore):
         self.patterns = patterns if patterns else STANDARD_IGNORE_PATTERNS
 
     def _is_ignored(self, path: str) -> bool:
-        for pattern in self.patterns:
-            if fnmatch(path, pattern):
-                return True
-        return False
+        return any(fnmatch(path, pattern) for pattern in self.patterns)
 
 
 class IgnoreGroup(Ignore):
@@ -110,10 +106,7 @@ class IgnoreGroup(Ignore):
         self.ignores = [ignore(root) for ignore in ignores]
 
     def _is_ignored(self, path: str) -> bool:
-        for ignore in self.ignores:
-            if ignore.is_ignored(path):
-                return True
-        return False
+        return any(ignore.is_ignored(path) for ignore in self.ignores)
 
     def list_ignored(self) -> List[str]:
         ignored = []

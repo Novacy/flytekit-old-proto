@@ -92,8 +92,7 @@ def get_workflow_template():
     with open(filepath, "rb") as fh:
         workflow_template_pb.ParseFromString(fh.read())
 
-    wt = _workflow_model.WorkflowTemplate.from_flyte_idl(workflow_template_pb)
-    return wt
+    return _workflow_model.WorkflowTemplate.from_flyte_idl(workflow_template_pb)
 
 
 def get_compiled_workflow_closure():

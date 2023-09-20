@@ -92,10 +92,10 @@ class ExecutableTemplateShimTask(object):
 
         # Create another execution context with the new user params, but let's keep the same working dir
         with FlyteContextManager.with_context(
-            ctx.with_execution_state(
-                cast(ExecutionState, ctx.execution_state).with_params(user_space_params=new_user_params)
-            )
-        ) as exec_ctx:
+                ctx.with_execution_state(
+                    cast(ExecutionState, ctx.execution_state).with_params(user_space_params=new_user_params)
+                )
+            ) as exec_ctx:
             # Added: Have to reverse the Python interface from the task template Flyte interface
             # See docstring for more details.
             guessed_python_input_types = TypeEngine.guess_python_types(self.task_template.interface.inputs)
@@ -115,8 +115,9 @@ class ExecutableTemplateShimTask(object):
 
             # Short circuit the translation to literal map because what's returned may be a dj spec (or an
             # already-constructed LiteralMap if the dynamic task was a no-op), not python native values
-            if isinstance(native_outputs, _literal_models.LiteralMap) or isinstance(
-                native_outputs, _dynamic_job.DynamicJobSpec
+            if isinstance(
+                native_outputs,
+                (_literal_models.LiteralMap, _dynamic_job.DynamicJobSpec),
             ):
                 return native_outputs
 
@@ -128,7 +129,7 @@ class ExecutableTemplateShimTask(object):
                 # Again, we're using the output_tuple_name as a proxy.
                 # Deleted some stuff
                 native_outputs_as_map = {expected_output_names[0]: native_outputs}
-            elif len(expected_output_names) == 0:
+            elif not expected_output_names:
                 native_outputs_as_map = {}
             else:
                 native_outputs_as_map = {
@@ -151,9 +152,7 @@ class ExecutableTemplateShimTask(object):
                 except Exception as e:
                     raise AssertionError(f"failed to convert return value for var {k}") from e
 
-            outputs_literal_map = _literal_models.LiteralMap(literals=literals)
-            # After the execute has been successfully completed
-            return outputs_literal_map
+            return _literal_models.LiteralMap(literals=literals)
 
 
 T = TypeVar("T")

@@ -105,7 +105,7 @@ def test_fast():
 def test_container():
     @task
     def t1(a: int) -> (int, str):
-        return a + 2, str(a) + "-HELLO"
+        return a + 2, f"{a}-HELLO"
 
     t2 = ContainerTask(
         "raw",
@@ -136,7 +136,7 @@ def test_container():
 def test_launch_plan_with_fixed_input():
     @task
     def greet(day_of_week: str, number: int, am: bool) -> str:
-        greeting = "Have a great " + day_of_week + " "
+        greeting = f"Have a great {day_of_week} "
         greeting += "morning" if am else "evening"
         return greeting + "!" * number
 

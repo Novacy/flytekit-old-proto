@@ -40,8 +40,7 @@ class Identifier(_core_identifier.Identifier):
         segments = string.split(":")
         if len(segments) != 5:
             raise _user_exceptions.FlyteValueException(
-                "The provided string was not in a parseable format. The string for an identifier must be in the format"
-                " entity_type:project:domain:name:version.  Received: {}".format(string)
+                f"The provided string was not in a parseable format. The string for an identifier must be in the format entity_type:project:domain:name:version.  Received: {string}"
             )
 
         resource_type, project, domain, name, version = segments
@@ -49,21 +48,14 @@ class Identifier(_core_identifier.Identifier):
         if resource_type not in cls._STRING_TO_TYPE_MAP:
             raise _user_exceptions.FlyteValueException(
                 resource_type,
-                "The provided string could not be parsed. The first element of an identifier must be one of: {}. "
-                "Received: {}".format(list(cls._STRING_TO_TYPE_MAP.keys()), resource_type),
+                f"The provided string could not be parsed. The first element of an identifier must be one of: {list(cls._STRING_TO_TYPE_MAP.keys())}. Received: {resource_type}",
             )
         resource_type = cls._STRING_TO_TYPE_MAP[resource_type]
 
         return cls(resource_type, project, domain, name, version)
 
     def __str__(self):
-        return "{}:{}:{}:{}:{}".format(
-            type(self)._TYPE_TO_STRING_MAP.get(self.resource_type, "<unknown>"),
-            self.project,
-            self.domain,
-            self.name,
-            self.version,
-        )
+        return f'{type(self)._TYPE_TO_STRING_MAP.get(self.resource_type, "<unknown>")}:{self.project}:{self.domain}:{self.name}:{self.version}'
 
 
 class TaskExecutionIdentifier(_core_identifier.TaskExecutionIdentifier):
@@ -178,4 +170,4 @@ class WorkflowExecutionIdentifier(_core_identifier.WorkflowExecutionIdentifier):
         )
 
     def __str__(self):
-        return "ex:{}:{}:{}".format(self.project, self.domain, self.name)
+        return f"ex:{self.project}:{self.domain}:{self.name}"

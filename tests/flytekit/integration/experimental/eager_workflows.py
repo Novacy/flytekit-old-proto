@@ -77,9 +77,7 @@ async def simple_eager_wf(x: int) -> int:
 
 @eager_partial
 async def conditional_eager_wf(x: int) -> int:
-    if await gt_0(x=x):
-        return -1
-    return 1
+    return -1 if await gt_0(x=x) else 1
 
 
 @eager_partial
@@ -92,8 +90,7 @@ async def try_except_eager_wf(x: int) -> int:
 
 @eager_partial
 async def gather_eager_wf(x: int) -> typing.List[int]:
-    results = await asyncio.gather(*[add_one(x=x) for _ in range(10)])
-    return results
+    return await asyncio.gather(*[add_one(x=x) for _ in range(10)])
 
 
 @eager_partial

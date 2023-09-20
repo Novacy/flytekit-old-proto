@@ -298,7 +298,7 @@ class FlyteDirToMultipartBlobTransformer(TypeTransformer[FlyteDirectory]):
         return _core_types.BlobType(format=format, dimensionality=_core_types.BlobType.BlobDimensionality.MULTIPART)
 
     def assert_type(self, t: typing.Type[FlyteDirectory], v: typing.Union[FlyteDirectory, os.PathLike, str]):
-        if isinstance(v, FlyteDirectory) or isinstance(v, str) or isinstance(v, os.PathLike):
+        if isinstance(v, (FlyteDirectory, str, os.PathLike)):
             """
             NOTE: we do not do a isdir check because the given path could be remote reference
             """
@@ -342,8 +342,7 @@ class FlyteDirToMultipartBlobTransformer(TypeTransformer[FlyteDirectory]):
             # Set the remote destination if one was given instead of triggering a random one below
             remote_directory = python_val.remote_directory or None
 
-        # Handle the string case
-        elif isinstance(python_val, pathlib.Path) or isinstance(python_val, str):
+        elif isinstance(python_val, (pathlib.Path, str)):
             source_path = str(python_val)
 
             if ctx.file_access.is_remote(source_path):
@@ -355,16 +354,12 @@ class FlyteDirToMultipartBlobTransformer(TypeTransformer[FlyteDirectory]):
         else:
             raise AssertionError(f"Expected FlyteDirectory or os.PathLike object, received {type(python_val)}")
 
-        # If we're uploading something, that means that the uri should always point to the upload destination.
-        if should_upload:
-            if remote_directory is None:
-                remote_directory = ctx.file_access.get_random_remote_directory()
-            ctx.file_access.put_data(source_path, remote_directory, is_multipart=True, batch_size=batch_size)
-            return Literal(scalar=Scalar(blob=Blob(metadata=meta, uri=remote_directory)))
-
-        # If not uploading, then we can only take the original source path as the uri.
-        else:
+        if not should_upload:
             return Literal(scalar=Scalar(blob=Blob(metadata=meta, uri=source_path)))
+        if remote_directory is None:
+            remote_directory = ctx.file_access.get_random_remote_directory()
+        ctx.file_access.put_data(source_path, remote_directory, is_multipart=True, batch_size=batch_size)
+        return Literal(scalar=Scalar(blob=Blob(metadata=meta, uri=remote_directory)))
 
     def to_python_value(
         self, ctx: FlyteContext, lv: Literal, expected_python_type: typing.Type[FlyteDirectory]

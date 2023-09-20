@@ -146,7 +146,7 @@ class SyncCheckpoint(Checkpoint):
         if p is None:
             return None
         files = list(p.iterdir())
-        if len(files) == 0:
+        if not files:
             return None
         if len(files) > 1:
             raise ValueError(f"Expected exactly one checkpoint - found {len(files)}")

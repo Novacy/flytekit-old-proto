@@ -128,5 +128,4 @@ class SQLite3TaskExecutor(ShimTaskExecutor[SQLite3Task]):
             interpolated_query = SQLite3Task.interpolate_query(tt.custom["query_template"], **kwargs)
             print(f"Interpolated query {interpolated_query}")
             with contextlib.closing(sqlite3.connect(local_path)) as con:
-                df = pd.read_sql_query(interpolated_query, con)
-                return df
+                return pd.read_sql_query(interpolated_query, con)

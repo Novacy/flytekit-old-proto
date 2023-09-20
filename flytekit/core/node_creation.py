@@ -57,7 +57,7 @@ def create_node(
     """
     from flytekit.remote.remote_callable import RemoteEntity
 
-    if len(args) > 0:
+    if args:
         raise _user_exceptions.FlyteAssertion(
             f"Only keyword args are supported to pass inputs to workflows and tasks."
             f"Aborting execution as detected {len(args)} positional args {args}"
@@ -96,10 +96,7 @@ def create_node(
         if isinstance(outputs, VoidPromise):
             return node
 
-        # If a Promise or custom namedtuple of Promises, we need to attach each output as an attribute to the node.
-        # todo: fix the noqas below somehow... can't add abstract property to RemoteEntity because it has to come
-        #  before the model Template classes in FlyteTask/Workflow/LaunchPlan
-        if entity.interface.outputs:  # noqa
+        if entity.interface.outputs:
             if isinstance(outputs, tuple):
                 for output_name in entity.interface.outputs.keys():  # noqa
                     attr = getattr(outputs, output_name)
@@ -114,7 +111,7 @@ def create_node(
                     setattr(node, output_name, attr)
                     node.outputs[output_name] = attr
             else:
-                output_names = [k for k in entity.interface.outputs.keys()]  # noqa
+                output_names = list(entity.interface.outputs.keys())
                 if len(output_names) != 1:
                     raise _user_exceptions.FlyteAssertion(f"Output of length 1 expected but {len(output_names)} found")
 
@@ -128,9 +125,6 @@ def create_node(
 
         return node
 
-    # Handling local execution
-    # Note: execution state is set to TASK_EXECUTION when running dynamic task locally
-    # https://github.com/flyteorg/flytekit/blob/0815345faf0fae5dc26746a43d4bda4cc2cdf830/flytekit/core/python_function_task.py#L262
     elif ctx.execution_state and ctx.execution_state.is_local_execution():
         if isinstance(entity, RemoteEntity):
             raise AssertionError(f"Remote entities are not yet runnable locally {entity.name}")
@@ -146,19 +140,17 @@ def create_node(
         # If it's a VoidPromise, let's just return it, it shouldn't get used anywhere and if it does, we want an error
         # The reason we return it if it's a tuple is to handle the case where the task returns a typing.NamedTuple.
         # In that case, it's already a tuple and we don't need to further tupletize.
-        if isinstance(results, VoidPromise) or isinstance(results, tuple):
+        if isinstance(results, (VoidPromise, tuple)):
             return results  # type: ignore
 
-        output_names = entity.python_interface.output_names  # type: ignore
-
-        if not output_names:
+        if output_names := entity.python_interface.output_names:
+            return (
+                entity.python_interface.output_tuple(results)
+                if len(output_names) == 1
+                else entity.python_interface.output_tuple(*results)
+            )
+        else:
             raise Exception(f"Non-VoidPromise received {results} but interface for {entity.name} doesn't have outputs")
-
-        if len(output_names) == 1:
-            # See explanation above for why we still tupletize a single element.
-            return entity.python_interface.output_tuple(results)  # type: ignore
-
-        return entity.python_interface.output_tuple(*results)  # type: ignore
 
     else:
         raise Exception(f"Cannot use explicit run to call Flyte entities {entity.name}")

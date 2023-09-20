@@ -138,11 +138,10 @@ class ComparisonExpression(object):
             if lhs.is_ready:
                 if lhs.val.scalar is None or lhs.val.scalar.primitive is None:
                     union = lhs.val.scalar.union
-                    if union and union.value.scalar:
-                        if union.value.scalar.primitive or union.value.scalar.none_type:
-                            self._lhs = union.value
-                        else:
-                            raise ValueError("Only primitive values can be used in comparison")
+                    if not union or not union.value.scalar:
+                        raise ValueError("Only primitive values can be used in comparison")
+                    if union.value.scalar.primitive or union.value.scalar.none_type:
+                        self._lhs = union.value
                     else:
                         raise ValueError("Only primitive values can be used in comparison")
         if isinstance(rhs, Promise):
@@ -150,11 +149,10 @@ class ComparisonExpression(object):
             if rhs.is_ready:
                 if rhs.val.scalar is None or rhs.val.scalar.primitive is None:
                     union = rhs.val.scalar.union
-                    if union and union.value.scalar:
-                        if union.value.scalar.primitive or union.value.scalar.none_type:
-                            self._rhs = union.value
-                        else:
-                            raise ValueError("Only primitive values can be used in comparison")
+                    if not union or not union.value.scalar:
+                        raise ValueError("Only primitive values can be used in comparison")
+                    if union.value.scalar.primitive or union.value.scalar.none_type:
+                        self._rhs = union.value
                     else:
                         raise ValueError("Only primitive values can be used in comparison")
         if self._lhs is None:
@@ -251,10 +249,7 @@ class ConjunctionExpression(object):
             return True
 
         r_eval = self.rhs.eval()
-        if self.op == ConjunctionOps.AND:
-            return l_eval and r_eval
-
-        return l_eval or r_eval
+        return l_eval and r_eval if self.op == ConjunctionOps.AND else l_eval or r_eval
 
     def __and__(self, other: Union[ComparisonExpression, "ConjunctionExpression"]):
         return ConjunctionExpression(lhs=self, op=ConjunctionOps.AND, rhs=other)
@@ -437,7 +432,7 @@ def create_native_named_tuple(
         return None
 
     if isinstance(promises, Promise):
-        k, v = [(k, v) for k, v in entity_interface.outputs.items()][0]  # get output native type
+        k, v = list(entity_interface.outputs.items())[0]
         # only show the name of output key if it's user-defined (by default Flyte names these as "o<n>")
         key = k if k != "o0" else 0
         try:
@@ -508,13 +503,12 @@ def create_task_output(
 
     # These should be OrderedDicts so it should be safe to iterate over the keys.
     if entity_interface:
-        variables = [k for k in entity_interface.outputs.keys()]
+        variables = list(entity_interface.outputs.keys())
 
     named_tuple_name = "DefaultNamedTupleOutput"
     if entity_interface and entity_interface.output_tuple_name:
         named_tuple_name = entity_interface.output_tuple_name
 
-    # Should this class be part of the Interface?
     class Output(collections.namedtuple(named_tuple_name, variables)):  # type: ignore
         def with_overrides(self, *args, **kwargs):
             val = self.__getattribute__(self._fields[0])
@@ -733,8 +727,7 @@ class NodeOutput(type_models.OutputReference):
         return self._node
 
     def __repr__(self) -> str:
-        s = f"Node({self.node if self.node.id is not None else None}:{self.var})"
-        return s
+        return f"Node({self.node if self.node.id is not None else None}:{self.var})"
 
 
 class SupportsNodeCreation(Protocol):
@@ -770,9 +763,7 @@ def extract_obj_name(name: str) -> str:
     """
     if name is None:
         return ""
-    if "." in name:
-        return name.split(".")[-1]
-    return name
+    return name.split(".")[-1] if "." in name else name
 
 
 def create_and_link_node_from_remote(
@@ -808,8 +799,9 @@ def create_and_link_node_from_remote(
     typed_interface = entity.interface
 
     if _inputs_not_allowed:
-        inputs_not_allowed_specified = _inputs_not_allowed.intersection(kwargs.keys())
-        if inputs_not_allowed_specified:
+        if inputs_not_allowed_specified := _inputs_not_allowed.intersection(
+            kwargs.keys()
+        ):
             raise _user_exceptions.FlyteAssertion(
                 f"Fixed inputs cannot be specified. Please remove the following inputs - {inputs_not_allowed_specified}"
             )
@@ -821,7 +813,7 @@ def create_and_link_node_from_remote(
                 if k in _ignorable_inputs or k in _inputs_not_allowed:
                     continue
             # TODO to improve the error message, should we show python equivalent types for var.type?
-            raise _user_exceptions.FlyteAssertion("Missing input `{}` type `{}`".format(k, var.type))
+            raise _user_exceptions.FlyteAssertion(f"Missing input `{k}` type `{var.type}`")
         v = kwargs[k]
         # This check ensures that tuples are not passed into a function, as tuples are not supported by Flyte
         # Usually a Tuple will indicate that multiple outputs from a previous task were accidentally passed
@@ -854,7 +846,9 @@ def create_and_link_node_from_remote(
 
     # Detect upstream nodes
     # These will be our core Nodes until we can amend the Promise to use NodeOutputs that reference our Nodes
-    upstream_nodes = list(set([n for n in nodes if n.id != _common_constants.GLOBAL_INPUT_NODE_ID]))
+    upstream_nodes = list(
+        {n for n in nodes if n.id != _common_constants.GLOBAL_INPUT_NODE_ID}
+    )
 
     flytekit_node = Node(
         id=f"{ctx.compilation_state.prefix}n{len(ctx.compilation_state.nodes)}",
@@ -868,11 +862,10 @@ def create_and_link_node_from_remote(
     if len(typed_interface.outputs) == 0:
         return VoidPromise(entity.name, NodeOutput(node=flytekit_node, var="placeholder"))
 
-    # Create a node output object for each output, they should all point to this node of course.
-    node_outputs = []
-    for output_name, output_var_model in typed_interface.outputs.items():
-        node_outputs.append(Promise(output_name, NodeOutput(node=flytekit_node, var=output_name)))
-
+    node_outputs = [
+        Promise(output_name, NodeOutput(node=flytekit_node, var=output_name))
+        for output_name, output_var_model in typed_interface.outputs.items()
+    ]
     return create_task_output(node_outputs)
 
 
@@ -916,7 +909,9 @@ def create_and_link_node(
                             )
                         is_optional = True
             if not is_optional:
-                raise _user_exceptions.FlyteAssertion("Input was not specified for: {} of type {}".format(k, var.type))
+                raise _user_exceptions.FlyteAssertion(
+                    f"Input was not specified for: {k} of type {var.type}"
+                )
             else:
                 continue
         v = kwargs[k]
@@ -945,12 +940,14 @@ def create_and_link_node(
     extra_inputs = used_inputs ^ set(kwargs.keys())
     if len(extra_inputs) > 0:
         raise _user_exceptions.FlyteAssertion(
-            "Too many inputs were specified for the interface.  Extra inputs were: {}".format(extra_inputs)
+            f"Too many inputs were specified for the interface.  Extra inputs were: {extra_inputs}"
         )
 
     # Detect upstream nodes
     # These will be our core Nodes until we can amend the Promise to use NodeOutputs that reference our Nodes
-    upstream_nodes = list(set([n for n in nodes if n.id != _common_constants.GLOBAL_INPUT_NODE_ID]))
+    upstream_nodes = list(
+        {n for n in nodes if n.id != _common_constants.GLOBAL_INPUT_NODE_ID}
+    )
 
     flytekit_node = Node(
         # TODO: Better naming, probably a derivative of the function name.
@@ -965,12 +962,10 @@ def create_and_link_node(
     if len(typed_interface.outputs) == 0:
         return VoidPromise(entity.name, NodeOutput(node=flytekit_node, var="placeholder"))
 
-    # Create a node output object for each output, they should all point to this node of course.
-    node_outputs = []
-    for output_name, output_var_model in typed_interface.outputs.items():
-        node_outputs.append(Promise(output_name, NodeOutput(node=flytekit_node, var=output_name)))
-        # Don't print this, it'll crash cuz sdk_node._upstream_node_ids might be None, but idl code will break
-
+    node_outputs = [
+        Promise(output_name, NodeOutput(node=flytekit_node, var=output_name))
+        for output_name, output_var_model in typed_interface.outputs.items()
+    ]
     return create_task_output(node_outputs, interface)
 
 
@@ -1001,46 +996,55 @@ def flyte_entity_call_handler(
     """
     # Sanity checks
     # Only keyword args allowed
-    if len(args) > 0:
+    if args:
         raise _user_exceptions.FlyteAssertion(
             f"When calling tasks, only keyword args are supported. "
             f"Aborting execution as detected {len(args)} positional args {args}"
         )
     # Make sure arguments are part of interface
-    for k, v in kwargs.items():
+    for k in kwargs:
         if k not in cast(SupportsNodeCreation, entity).python_interface.inputs:
             raise ValueError(
                 f"Received unexpected keyword argument '{k}' in function '{cast(SupportsNodeCreation, entity).name}'"
             )
 
     ctx = FlyteContextManager.current_context()
-    if ctx.execution_state and (
-        ctx.execution_state.mode == ExecutionState.Mode.TASK_EXECUTION
-        or ctx.execution_state.mode == ExecutionState.Mode.LOCAL_TASK_EXECUTION
-    ):
+    if ctx.execution_state and ctx.execution_state.mode in [
+        ExecutionState.Mode.TASK_EXECUTION,
+        ExecutionState.Mode.LOCAL_TASK_EXECUTION,
+    ]:
         logger.error("You are not supposed to nest @Task/@Workflow inside a @Task!")
     if ctx.compilation_state is not None and ctx.compilation_state.mode == 1:
         return create_and_link_node(ctx, entity=entity, **kwargs)
     if ctx.execution_state and ctx.execution_state.is_local_execution():
         mode = cast(LocallyExecutable, entity).local_execution_mode()
         with FlyteContextManager.with_context(
-            ctx.with_execution_state(ctx.execution_state.with_params(mode=mode))
-        ) as child_ctx:
+                    ctx.with_execution_state(ctx.execution_state.with_params(mode=mode))
+                ) as child_ctx:
             if (
                 child_ctx.execution_state
                 and child_ctx.execution_state.branch_eval_mode == BranchEvalMode.BRANCH_SKIPPED
             ):
                 if (
-                    len(cast(SupportsNodeCreation, entity).python_interface.inputs) > 0
-                    or len(cast(SupportsNodeCreation, entity).python_interface.outputs) > 0
+                    len(
+                        cast(
+                            SupportsNodeCreation, entity
+                        ).python_interface.inputs
+                    )
+                    <= 0
+                    and len(
+                        cast(
+                            SupportsNodeCreation, entity
+                        ).python_interface.outputs
+                    )
+                    <= 0
                 ):
-                    output_names = list(cast(SupportsNodeCreation, entity).python_interface.outputs.keys())
-                    if len(output_names) == 0:
-                        return VoidPromise(entity.name)
-                    vals = [Promise(var, None) for var in output_names]
-                    return create_task_output(vals, cast(SupportsNodeCreation, entity).python_interface)
-                else:
                     return None
+                output_names = list(cast(SupportsNodeCreation, entity).python_interface.outputs.keys())
+                if not output_names:
+                    return VoidPromise(entity.name)
+                vals = [Promise(var, None) for var in output_names]
+                return create_task_output(vals, cast(SupportsNodeCreation, entity).python_interface)
             return cast(LocallyExecutable, entity).local_execute(ctx, **kwargs)
     else:
         mode = cast(LocallyExecutable, entity).local_execution_mode()

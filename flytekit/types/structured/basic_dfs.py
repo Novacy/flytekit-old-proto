@@ -30,8 +30,7 @@ T = TypeVar("T")
 def get_storage_options(cfg: DataConfig, uri: str, anon: bool = False) -> typing.Optional[typing.Dict]:
     protocol = get_protocol(uri)
     if protocol == "s3":
-        kwargs = s3_setup_args(cfg.s3, anon)
-        if kwargs:
+        if kwargs := s3_setup_args(cfg.s3, anon):
             return kwargs
     return None
 

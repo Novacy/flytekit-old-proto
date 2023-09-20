@@ -64,9 +64,7 @@ class SchemaReader(typing.Generic[T]):
 
     @property
     def column_names(self) -> typing.Optional[typing.List[str]]:
-        if self._columns:
-            return list(self._columns.keys())
-        return None
+        return list(self._columns.keys()) if self._columns else None
 
     @abstractmethod
     def iter(self, **kwargs) -> typing.Generator[T, None, None]:
@@ -91,9 +89,7 @@ class SchemaWriter(typing.Generic[T]):
 
     @property
     def column_names(self) -> typing.Optional[typing.List[str]]:
-        if self._columns:
-            return list(self._columns.keys())
-        return None
+        return list(self._columns.keys()) if self._columns else None
 
     @abstractmethod
     def write(self, *dfs, **kwargs):

@@ -28,7 +28,7 @@ class ModinPandasSchemaReader(LocalIOSchemaReader[modin.pandas.DataFrame]):
 
     def all(self, **kwargs) -> modin.pandas.DataFrame:
         if self._fmt == SchemaFormat.PARQUET:
-            return modin.pandas.read_parquet(self.from_path + "/00000")
+            return modin.pandas.read_parquet(f"{self.from_path}/00000")
         raise AssertionError("Only Parquet type files are supported for modin pandas dataframe currently")
 
 
@@ -46,12 +46,12 @@ class ModinPandasSchemaWriter(LocalIOSchemaWriter[modin.pandas.DataFrame]):
         super().__init__(str(to_path), cols, fmt)
 
     def write(self, *dfs: modin.pandas.DataFrame, **kwargs):
-        if dfs is None or len(dfs) == 0:
+        if dfs is None or not dfs:
             return
         if len(dfs) > 1:
             raise AssertionError("Only a single modin.pandas.DataFrame can be written per variable currently")
         if self._fmt == SchemaFormat.PARQUET:
-            dfs[0].to_parquet(self.to_path + "/00000")
+            dfs[0].to_parquet(f"{self.to_path}/00000")
             return
         raise AssertionError("Only Parquet type files are supported for modin.pandas dataframe currently")
 

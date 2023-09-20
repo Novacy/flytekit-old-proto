@@ -121,9 +121,10 @@ class Node(object):
             if not isinstance(alias_dict, dict):
                 raise AssertionError("Aliases should be specified as dict[str, str]")
             self._aliases = []
-            for k, v in alias_dict.items():
-                self._aliases.append(_workflow_model.Alias(var=k, alias=v))
-
+            self._aliases.extend(
+                _workflow_model.Alias(var=k, alias=v)
+                for k, v in alias_dict.items()
+            )
         if "requests" in kwargs or "limits" in kwargs:
             requests = kwargs.get("requests")
             if requests and not isinstance(requests, Resources):

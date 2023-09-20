@@ -22,7 +22,7 @@ class Schedule(_common.FlyteIdlEntity):
             elif int_value == cls.DAY:
                 return "DAY"
             else:
-                return "{}".format(int_value)
+                return f"{int_value}"
 
     class FixedRate(_common.FlyteIdlEntity):
         def __init__(self, value, unit):

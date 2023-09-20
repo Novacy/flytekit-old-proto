@@ -66,8 +66,7 @@ class PydanticDeserializationLiteralStore:
         if not cls.is_attached():
             raise Exception("Must attach to a literal map before deserializing")
         literal = cls.literal_store[identifier]  # type: ignore
-        python_object = deserialize_flyte_literal(literal, expected_type)
-        return python_object
+        return deserialize_flyte_literal(literal, expected_type)
 
 
 def set_validators_on_supported_flyte_types() -> None:
@@ -141,5 +140,4 @@ def deserialize_flyte_literal(
     """Deserialize a Flyte Literal into the python object instance."""
     ctx = context_manager.FlyteContext.current_context()
     transformer = type_engine.TypeEngine.get_transformer(python_type)
-    python_obj = transformer.to_python_value(ctx, flyteobj_literal, python_type)
-    return python_obj
+    return transformer.to_python_value(ctx, flyteobj_literal, python_type)

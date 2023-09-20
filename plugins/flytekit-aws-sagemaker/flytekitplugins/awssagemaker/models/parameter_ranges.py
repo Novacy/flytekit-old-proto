@@ -173,7 +173,7 @@ class CategoricalParameterRange(_common.FlyteIdlEntity):
         :param pb2_object:
         :rtype: CategoricalParameterRange
         """
-        return cls(values=[v for v in pb2_object.values])
+        return cls(values=list(pb2_object.values))
 
 
 class ParameterRanges(_common.FlyteIdlEntity):
@@ -247,10 +247,7 @@ class ParameterRangeOneOf(_common.FlyteIdlEntity):
         Retrieves the integer parameter range if one is set. None otherwise.
         :rtype: Optional[IntegerParameterRange]
         """
-        if self._integer_parameter_range:
-            return self._integer_parameter_range
-
-        return None
+        return self._integer_parameter_range if self._integer_parameter_range else None
 
     @property
     def continuous_parameter_range(self) -> Optional[ContinuousParameterRange]:

@@ -31,10 +31,9 @@ class PanderaTransformer(TypeTransformer[pandera.typing.DataFrame]):
 
         if type_args:
             schema_model, *_ = type_args
-            schema = schema_model.to_schema()
+            return schema_model.to_schema()
         else:
-            schema = pandera.DataFrameSchema()  # type: ignore
-        return schema
+            return pandera.DataFrameSchema()
 
     @staticmethod
     def _get_pandas_type(pandera_dtype: pandera.dtypes.DataType):
@@ -66,19 +65,18 @@ class PanderaTransformer(TypeTransformer[pandera.typing.DataFrame]):
         python_type: Type[pandera.typing.DataFrame],
         expected: LiteralType,
     ) -> Literal:
-        if isinstance(python_val, pandas.DataFrame):
-            local_dir = ctx.file_access.get_random_local_directory()
-            w = PandasSchemaWriter(
-                local_dir=local_dir, cols=self._get_col_dtypes(python_type), fmt=SchemaFormat.PARQUET
-            )
-            w.write(self._pandera_schema(python_type)(python_val))
-            remote_path = ctx.file_access.get_random_remote_directory()
-            ctx.file_access.put_data(local_dir, remote_path, is_multipart=True)
-            return Literal(scalar=Scalar(schema=Schema(remote_path, self._get_schema_type(python_type))))
-        else:
+        if not isinstance(python_val, pandas.DataFrame):
             raise AssertionError(
                 f"Only Pandas Dataframe object can be returned from a task, returned object type {type(python_val)}"
             )
+        local_dir = ctx.file_access.get_random_local_directory()
+        w = PandasSchemaWriter(
+            local_dir=local_dir, cols=self._get_col_dtypes(python_type), fmt=SchemaFormat.PARQUET
+        )
+        w.write(self._pandera_schema(python_type)(python_val))
+        remote_path = ctx.file_access.get_random_remote_directory()
+        ctx.file_access.put_data(local_dir, remote_path, is_multipart=True)
+        return Literal(scalar=Scalar(schema=Schema(remote_path, self._get_schema_type(python_type))))
 
     def to_python_value(
         self, ctx: FlyteContext, lv: Literal, expected_python_type: Type[pandera.typing.DataFrame]

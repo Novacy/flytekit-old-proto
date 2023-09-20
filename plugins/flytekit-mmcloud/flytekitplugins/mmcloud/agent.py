@@ -65,18 +65,24 @@ class MMCloudAgent(AgentBase):
         """
         Submit Flyte task as MMCloud job to the OpCenter, and return the job UID for the task.
         """
+        # We do not use container.resources because FlytePropeller will impose limits that should not apply to MMCloud
+        min_cpu, min_mem, max_cpu, max_mem = task_template.custom["resources"]
         submit_command = [
             "float",
             "submit",
             "--force",
             *self._response_format,
+            *(
+                ["--cpu", f"{min_cpu}:{max_cpu}"]
+                if max_cpu
+                else ["--cpu", f"{min_cpu}"]
+            ),
+            *(
+                ["--mem", f"{min_mem}:{max_mem}"]
+                if max_mem
+                else ["--mem", f"{min_mem}"]
+            ),
         ]
-
-        # We do not use container.resources because FlytePropeller will impose limits that should not apply to MMCloud
-        min_cpu, min_mem, max_cpu, max_mem = task_template.custom["resources"]
-        submit_command.extend(["--cpu", f"{min_cpu}:{max_cpu}"] if max_cpu else ["--cpu", f"{min_cpu}"])
-        submit_command.extend(["--mem", f"{min_mem}:{max_mem}"] if max_mem else ["--mem", f"{min_mem}"])
-
         container = task_template.container
 
         image = container.image
